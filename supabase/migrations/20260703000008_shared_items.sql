@@ -46,9 +46,12 @@ CREATE INDEX IF NOT EXISTS shared_items_owner_idx
   ON public.shared_items(owner_id);
 CREATE INDEX IF NOT EXISTS shared_items_shared_with_idx
   ON public.shared_items(shared_with_id);
-CREATE INDEX IF NOT EXISTS shared_items_active_idx
-  ON public.shared_items(shared_with_id, expires_at)
-  WHERE expires_at IS NULL OR expires_at > NOW();
+-- Indice completo sobre (shared_with_id, expires_at). No se usa predicado
+-- WHERE con NOW() porque NOW() es STABLE y Postgres exige IMMUTABLE en
+-- indices parciales. El filtro por expires_at > NOW() se hace en la
+-- query, apoyandose en este indice para el range scan.
+CREATE INDEX IF NOT EXISTS shared_items_recipient_expires_idx
+  ON public.shared_items(shared_with_id, expires_at);
 
 DROP TRIGGER IF EXISTS shared_items_set_updated_at ON public.shared_items;
 CREATE TRIGGER shared_items_set_updated_at
