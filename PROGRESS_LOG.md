@@ -96,3 +96,110 @@ Bitácora de trabajo autónomo. Un bloque por fase completada.
 - ✅ Sintaxis SQL revisada; usa solo constructs estándar de Postgres 15+ y patrones Supabase (`auth.uid()`, `storage.buckets`, `storage.objects`, triggers `SECURITY DEFINER` con `search_path`).
 
 ---
+
+## Fase 4 — Módulo criptográfico Zero-Knowledge ✅
+
+**Fecha:** 2026-07-03
+
+Se saltó Fase 3 (auth) intencionalmente porque depende de Fase 2 (DB) que está bloqueada. Fase 4 es 100% client-side y no requiere Supabase.
+
+### Qué se implementó
+
+**`lib/crypto/`** — módulo puro, sin efectos secundarios, sin llamadas a red, testeable de forma aislada:
+
+- `constants.ts` — parámetros fijos: `PBKDF2_DEFAULT_ITERATIONS=600_000`, `PBKDF2_MIN_ITERATIONS=600_000`, `PBKDF2_HASH="SHA-256"`, `AES_KEY_BITS=256`, `AES_ALGORITHM="AES-GCM"`, `AES_IV_BYTES=12`, `PBKDF2_SALT_BYTES=32`.
+- `base64.ts` — `stringToBytes/bytesToString/bytesToBase64/base64ToBytes`. Chunked encoding para no explotar en payloads grandes.
+- `random.ts` — `generateSalt/generateSaltBase64/generateIv/generateRandomBytes` con `crypto.getRandomValues`. Rechaza length inválido.
+- `kdf.ts` — `deriveMasterKey({ password, saltBase64, iterations, extractable=false })`. Rechaza password vacía. Rechaza iteraciones < 600k. Clave por default no-extractable.
+- `aes.ts` — `encryptBytes/decryptBytes`. IV nuevo por cada operación. Retorna `CipherEnvelope { ciphertext, iv }` en base64.
+- `payload.ts` — `encryptPayload/decryptPayload` (JSON <-> bytes <-> cipher).
+- `index.ts` — punto de entrada público con re-exports.
+
+**`store/vault-lock.ts`** — Zustand store en memoria. Estado `{ state: "locked" } | { state: "unlocked", key, unlockedAt, lastActivity }`. Métodos `unlock/lock/touch/requireKey/checkTimeout`. Sin middleware `persist` (comentario explícito de que sería un bug).
+
+**`hooks/use-auto-lock.ts`** — hook cliente que:
+- Refresca `lastActivity` en click/keydown/mousemove/touchstart/scroll.
+- Poll cada 15 s revisa timeout y llama `lock()` si vencido.
+- `visibilitychange` → lock si `lockOnHidden` (default true).
+- `beforeunload` → lock defensivo.
+
+**`docs/CRYPTO_FLOW.md`** — flujo completo documentado: principios, algoritmos, registro, cifrado, descifrado, manejo de master key, auto-lock, compartir (Fase 7), HIBP (Fase 6), backup cifrado (Fase 7), y explícitamente amenazas fuera de alcance (XSS, malware local, server-side JS injection).
+
+**Tests (`*.test.ts`) — 38 tests en 6 archivos:**
+- `base64.test.ts` (5 tests) — roundtrips, unicode, empty, payload grande de 200 KB.
+- `random.test.ts` (6 tests) — tamaños correctos, unicidad, formato base64, rechazo de inputs inválidos.
+- `kdf.test.ts` (7 tests) — misma pwd+salt+iters produce claves equivalentes (verificado via encrypt/decrypt cross), pwd distinta falla, salt distinto falla, rechaza pwd vacía, rechaza iters < 600k, acepta 600k default, key es no-extractable.
+- `aes.test.ts` (8 tests) — roundtrip, IVs únicos por operación (100 iteraciones sin colisión), key incorrecta falla, ciphertext tampered falla (auth tag GCM), IV tampered falla, payload vacío, payload de 100 KB.
+- `payload.test.ts` (4 tests) — objeto plano, array, primitivos, estructura anidada con unicode.
+- `store/vault-lock.test.ts` (8 tests) — locked por default, unlock guarda key, lock limpia, `requireKey` lanza si locked, `touch` actualiza lastActivity, `checkTimeout` lockea al vencer, no lockea si aún hay tiempo.
+
+### Decisiones técnicas y por qué
+
+- **`extractable: false` por default en la master key.** Blindaje ante XSS: si un atacante inyecta JS en la app desbloqueada, no puede exportar la key como bytes (aunque sí puede llamar encrypt/decrypt — documentado como amenaza fuera de alcance).
+- **Blob JSON único por ítem (no campos separados).** Un único IV por operación → menos superficie de metadata, mejor atomicidad, imposible olvidar cifrar un campo. Documentado en CRYPTO_FLOW.md.
+- **`useAutoLock` monta listeners `passive:true`.** No impide scroll/touch.
+- **Poll de timeout cada 15 s en vez de setTimeout dinámico.** Simpler + resistente a suspensión de timers cuando la pestaña queda inactiva.
+- **`lockOnHidden` default true.** Seguridad primero; si la UX se hace incómoda, se puede exponer como setting del usuario.
+- **Cast `as BufferSource` en las llamadas a `crypto.subtle.*`.** Node 20 amplió el tipo de `Uint8Array.buffer` a `ArrayBufferLike`, incompatible con la definición estricta de `BufferSource` de lib.dom. El cast es un no-op en runtime; documentado.
+- **Tests usan `PBKDF2_MIN_ITERATIONS` directamente (no 600k iterativo por test).** El test de "acepta default 600k" corre una vez con el valor real; los demás minimizan tiempo. Todo el suite corre en ~2.5 s.
+
+### Pendiente / dudas
+
+- **Salt regeneration por cambio de master password:** cuando se implemente cambio de master password (probablemente Fase 6/7), hay que decidir si se rota el salt o solo se re-cifra el vault entero con la nueva key. Fuera de alcance de Fase 4.
+- **Integración con `services/` y `repositories/`:** el módulo cripto está listo; el consumo real llega en Fase 5 (CRUD).
+
+### Verificación
+
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — sin errores.
+- ✅ `npm run build` — compila; ninguna ruta rompe.
+- ✅ `npm test` — 38/38 tests passing en 2.58 s.
+- ✅ Regla dura auditada manualmente: NO hay `console.log` de secretos, NO hay imports de `localStorage/sessionStorage/IndexedDB`, NO hay middleware `persist` en el store.
+
+---
+
+## Fase 6 — Utilidades de password (PARCIAL) ✅
+
+**Fecha:** 2026-07-03
+
+Solo la parte client-side de Fase 6 (generador, fortaleza, HIBP). Los items que requieren datos del vault (resumen, duplicados) siguen bloqueados hasta Fase 3+5 (DB + auth).
+
+### Qué se implementó
+
+**`lib/password/`:**
+
+- `alphabets.ts` — `LOWERCASE, UPPERCASE, DIGITS, SYMBOLS, AMBIGUOUS` como constantes tipadas.
+- `generator.ts` — `generatePassword({ length, useLowercase, useUppercase, useDigits, useSymbols, excludeAmbiguous, requireEachSet })`. Usa `crypto.getRandomValues` con muestreo **sin sesgo modulo** (rechazo). `requireEachSet` inyecta al menos un char de cada set y luego Fisher-Yates para no filtrar la posición. No usa Math.random en ninguna parte.
+- `strength.ts` — `evaluatePasswordStrength(password)` retorna `{ entropyBits, score 0-4, label, crackSecondsFast/Slow, crackDisplay, warnings }`. Entropía por pool (Shannon) menos penalizaciones por patrones (repetición, secuencia teclado, solo dígitos, etc). Documentada la limitación de honestidad: es cota SUPERIOR (asume aleatorio). Considerar zxcvbn en Fase 6 completa.
+- `hibp.ts` — `sha1Hex(input)` + `checkHibp(password, { fetchImpl, signal })`. k-anonymity: envía SOLO los primeros 5 chars hex del SHA-1 al endpoint `api.pwnedpasswords.com/range/{prefix}` con header `Add-Padding: true`. Parsea respuesta línea por línea. Descarta entradas con `count = 0` (padding). Nunca loguea el password ni el hash completo. Error handling con `Error({cause})` para debug sin exponer detalles al usuario.
+- `index.ts` — re-exports públicos.
+
+**Tests (`*.test.ts`) — 30 tests adicionales, 68 total en el proyecto:**
+- `generator.test.ts` (9 tests) — longitud, requireEachSet, excludeAmbiguous, solo digits, no colisiones en 50 llamadas, rechazos.
+- `strength.test.ts` (10 tests) — vacío, muy corto, solo digits, ranges de score, detección de repetido/secuencia, entropia crece con longitud, formato legible de crackDisplay.
+- `hibp.test.ts` (11 tests) — vectores SHA-1 conocidos (empty, "abc", "password"), URL enviada tiene EXACTAMENTE 5 chars hex, hash completo NO viaja, header Add-Padding presente, detección de breach, count=0 tratado como padding, propagación de errores de red y de status HTTP.
+
+### Decisiones técnicas y por qué
+
+- **Muestreo `unbiasedIndex(poolSize)`.** El clásico `bytes[0] % poolSize` sesga hacia índices bajos cuando poolSize no divide a 2^32. Se usa rejection sampling: descarta valores fuera del rango múltiplo de poolSize.
+- **`requireEachSet` + Fisher-Yates shuffle.** Poner un char de cada set en las primeras N posiciones y no barajar filtraría entropía (los primeros N chars de un password con requireEachSet siempre vendrían de sets distintos en orden fijo). Shuffle previene eso.
+- **Strength es cota superior consciente.** Documentado en el archivo. Zxcvbn está considerado para Fase 6 completa pero agrega ~800 KB al bundle — se evaluará contra los beneficios reales.
+- **HIBP `Add-Padding: true`.** Sin este header, el tamaño de la respuesta puede filtrar información al observador de red sobre el prefijo consultado (todos los prefijos tienen tamaños ligeramente distintos según cuántos sufijos matchean).
+- **HIBP con `fetchImpl` inyectable.** Permite tests unitarios sin hacer llamadas reales (los tests validan la ausencia de información sensible en la URL enviada — verificación de seguridad, no de red).
+- **Sin `sha1` para hashing de otras cosas.** SHA-1 aquí es por requisito de la API de HIBP. No usar SHA-1 para nada más en el proyecto.
+
+### Pendiente / dudas
+
+- **Zxcvbn en el analizador de fortaleza** — decisión pendiente para Fase 6 completa.
+- **Detección de duplicados y resumen del dashboard** — depende de Fase 3 (auth) + Fase 5 (CRUD).
+- **UI del generador y del strength meter** — depende de que Fase 3+5 existan para tener contexto donde consumirlos. Los servicios ya están listos.
+
+### Verificación
+
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — sin errores.
+- ✅ `npm run build` — compila.
+- ✅ `npm test` — 68/68 tests passing en 2.77 s.
+- ✅ Auditoría rápida: `checkHibp` verifica en test que solo 5 chars hex viajan al endpoint.
+
+---

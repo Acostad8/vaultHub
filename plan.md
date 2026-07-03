@@ -47,11 +47,11 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [ ] Soporte para tipos adicionales: notas seguras, API keys, claves SSH, tokens
 
 ## Fase 6 — Dashboard y estadísticas
-- [ ] Resumen: total de cuentas, fuertes/débiles, duplicadas, favoritas
-- [ ] Analizador de fortaleza (entropía, tiempo estimado de ruptura)
-- [ ] Detección de contraseñas duplicadas
-- [ ] Integración HaveIBeenPwned (k-Anonymity, solo prefijo SHA-1)
-- [ ] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
+- [ ] Resumen: total de cuentas, fuertes/débiles, duplicadas, favoritas (depende Fase 3+5)
+- [x] Analizador de fortaleza (entropía, tiempo estimado de ruptura)
+- [ ] Detección de contraseñas duplicadas (depende Fase 3+5)
+- [x] Integración HaveIBeenPwned (k-Anonymity, solo prefijo SHA-1)
+- [x] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
 
 ## Fase 7 — Funciones avanzadas
 - [ ] 2FA con TOTP (QR + códigos de recuperación)
