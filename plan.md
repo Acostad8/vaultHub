@@ -3,12 +3,12 @@
 Marca cada casilla al completar y verificar (tests + build/lint pasando) antes de avanzar. Registra el cierre de cada fase en `PROGRESS_LOG.md`.
 
 ## Fase 1 — Inicialización y configuración
-- [ ] Crear proyecto Next.js 14+ (App Router, TypeScript estricto)
-- [ ] Configurar Tailwind CSS + shadcn/ui
-- [ ] Configurar ESLint + Prettier
-- [ ] Crear estructura de carpetas según CLAUDE.md
-- [ ] Configurar `.env.example` con las variables necesarias (sin valores reales)
-- [ ] Configurar cliente de Supabase (browser + server)
+- [x] Crear proyecto Next.js 14+ (App Router, TypeScript estricto)
+- [x] Configurar Tailwind CSS + shadcn/ui
+- [x] Configurar ESLint + Prettier
+- [x] Crear estructura de carpetas según CLAUDE.md
+- [x] Configurar `.env.example` con las variables necesarias (sin valores reales)
+- [x] Configurar cliente de Supabase (browser + server)
 
 ## Fase 2 — Conexión con Supabase y base de datos
 - [ ] Solicitar SUPABASE_URL y SUPABASE_ANON_KEY al usuario
@@ -28,14 +28,14 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [ ] Middleware de rutas protegidas
 
 ## Fase 4 — Módulo criptográfico Zero-Knowledge (crítico)
-- [ ] Función de generación de salt por usuario (al registrarse)
-- [ ] Función de derivación de clave con PBKDF2 (Web Crypto API, ≥600,000 iteraciones)
-- [ ] Función de cifrado AES-256-GCM
-- [ ] Función de descifrado AES-256-GCM
-- [ ] Manejo de la master key en Zustand (memoria, nunca persistida)
-- [ ] Auto-bloqueo por inactividad/cambio de pestaña/cierre
-- [ ] **Tests unitarios exhaustivos**: cifrar→descifrar da el original, IVs son únicos por operación, falla correctamente con clave incorrecta, etc.
-- [ ] Documentar el flujo completo en `docs/CRYPTO_FLOW.md`
+- [x] Función de generación de salt por usuario (al registrarse)
+- [x] Función de derivación de clave con PBKDF2 (Web Crypto API, ≥600,000 iteraciones)
+- [x] Función de cifrado AES-256-GCM
+- [x] Función de descifrado AES-256-GCM
+- [x] Manejo de la master key en Zustand (memoria, nunca persistida)
+- [x] Auto-bloqueo por inactividad/cambio de pestaña/cierre
+- [x] **Tests unitarios exhaustivos**: cifrar→descifrar da el original, IVs son únicos por operación, falla correctamente con clave incorrecta, etc.
+- [x] Documentar el flujo completo en `docs/CRYPTO_FLOW.md`
 
 ## Fase 5 — CRUD de credenciales
 - [ ] Crear/ver/editar/eliminar credenciales (con cifrado/descifrado transparente)
