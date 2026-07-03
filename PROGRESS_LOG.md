@@ -203,3 +203,47 @@ Solo la parte client-side de Fase 6 (generador, fortaleza, HIBP). Los items que 
 - ✅ Auditoría rápida: `checkHibp` verifica en test que solo 5 chars hex viajan al endpoint.
 
 ---
+
+## Fase 7 — TOTP (PARCIAL) ✅
+
+**Fecha:** 2026-07-03
+
+Solo el algoritmo puro. El wiring con UI (QR, códigos de recuperación) requiere Fase 3+5.
+
+### Qué se implementó
+
+**`lib/totp/`:**
+
+- `base32.ts` — encode/decode RFC 4648 (upper, alfabeto A-Z 2-7). Case-insensitive en decode, ignora whitespace.
+- `totp.ts` — `generateTotpCode(secretBase32, opts)`, `verifyTotpCode(...)`, `secondsUntilNextTotp(...)`. HMAC via `crypto.subtle` (soporta SHA-1/256/512). Truncación dinámica RFC 4226 §5.3. Contador de 8 bytes big-endian.
+- `index.ts` — re-exports.
+
+**Tests — 17 tests nuevos (85 total en el proyecto):**
+- `base32.test.ts` (4 tests) — todos los vectores RFC 4648 §10 pasan en ambos sentidos, ignora whitespace/case, rechaza chars inválidos.
+- `totp.test.ts` (13 tests) — **vectores RFC 6238 Appendix B (SHA-1, 8 dígitos) pasan exactos para T=59, 1111111109, 1111111111, 1234567890, 2000000000**. Default 6 dígitos verificado. Cambio entre ventanas. `secondsUntilNextTotp` matemática correcta. `verifyTotpCode` con window ±1 acepta ventana anterior y rechaza códigos muy viejos.
+
+### Decisiones técnicas y por qué
+
+- **Only Web Crypto HMAC.** Consistente con la regla del proyecto — sin librerías externas de crypto.
+- **`opts.now` inyectable.** Sin esto, los tests dependerían del reloj del sistema. Es un patrón limpio para primitivas de time-based crypto.
+- **Contador de 8 bytes vía `Math.floor(n / 256)`.** JS bitshift `>>` es 32 bits, no sirve. Los enteros seguros de JS (2^53) sobran para años.
+- **`SHA-1` como default.** Google Authenticator y Aegis mainstream solo soportan SHA-1 en la práctica, aunque RFC 6238 admite SHA-256/SHA-512. La UI del onboarding debería recomendar SHA-1 para máxima compatibilidad de apps.
+
+### Verificación
+
+- ✅ `npm run typecheck` sin errores.
+- ✅ `npm run lint` sin errores.
+- ✅ `npm run build` compila.
+- ✅ `npm test` — 85/85 tests passing en 2.86 s. **Los 5 vectores oficiales del RFC 6238 pasan byte a byte.**
+
+---
+
+## Fase 8 — README (PARCIAL) ✅
+
+**Fecha:** 2026-07-03
+
+Sobrescribió el README default de create-next-app con un README real del proyecto: overview de zero-knowledge, stack, estructura de carpetas, pasos de instalación (incluyendo el flujo de Supabase CLI), scripts, estado actual de cada fase, y reglas de seguridad no negociables copiadas de CLAUDE.md como recordatorio para cualquiera que abra el repo.
+
+Los items restantes de Fase 8 (dark mode, a11y, E2E, diagramas de arquitectura y ERD, manual de deploy en Vercel) están pendientes — la mayoría requieren UI existente para tener sentido, o el resto del sistema funcionando.
+
+---

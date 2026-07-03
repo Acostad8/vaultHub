@@ -54,7 +54,7 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
 
 ## Fase 7 — Funciones avanzadas
-- [ ] 2FA con TOTP (QR + códigos de recuperación)
+- [ ] 2FA con TOTP (QR + códigos de recuperación) — algoritmo TOTP RFC 6238 listo en `lib/totp/`
 - [ ] Historial de cambios por credencial (cifrado)
 - [ ] Auditoría (login, logout, desbloqueo, exportación, cambios, compartidos)
 - [ ] Sesiones activas y cierre remoto
