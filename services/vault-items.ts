@@ -4,9 +4,14 @@ import { decryptPayload, encryptPayload } from "@/lib/crypto";
 import {
   insertVaultItem,
   listActiveVaultItems,
-  updateVaultItem,
+  listPasswordHistory,
+  listTrashedVaultItems,
+  purgeVaultItem,
+  restoreVaultItem,
   softDeleteVaultItem,
+  updateVaultItem,
   getVaultItem,
+  type PasswordHistoryRow,
 } from "@/repositories/vault-items";
 import type { VaultItemDecrypted, VaultItemPayload, VaultItemRow, VaultItemType } from "@/types/vault";
 import { useVaultLock } from "@/store/vault-lock";
@@ -27,21 +32,36 @@ function decryptedFromRow<T extends VaultItemPayload>(
   };
 }
 
+async function decryptRow(key: CryptoKey, row: VaultItemRow): Promise<VaultItemDecrypted | null> {
+  try {
+    const payload = await decryptPayload<VaultItemPayload>(key, {
+      ciphertext: row.payload_ciphertext,
+      iv: row.payload_iv,
+    });
+    return decryptedFromRow(row, payload);
+  } catch {
+    return null;
+  }
+}
+
 export async function listDecryptedItems(): Promise<VaultItemDecrypted[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listActiveVaultItems();
   const out: VaultItemDecrypted[] = [];
   for (const row of rows) {
-    try {
-      const payload = await decryptPayload<VaultItemPayload>(key, {
-        ciphertext: row.payload_ciphertext,
-        iv: row.payload_iv,
-      });
-      out.push(decryptedFromRow(row, payload));
-    } catch {
-      // Item con payload corrupto o cifrado con otra key — se skip para
-      // no romper la lista. La UI puede mostrar una alerta agregada.
-    }
+    const dec = await decryptRow(key, row);
+    if (dec) out.push(dec);
+  }
+  return out;
+}
+
+export async function listDecryptedTrash(): Promise<VaultItemDecrypted[]> {
+  const key = useVaultLock.getState().requireKey();
+  const rows = await listTrashedVaultItems();
+  const out: VaultItemDecrypted[] = [];
+  for (const row of rows) {
+    const dec = await decryptRow(key, row);
+    if (dec) out.push(dec);
   }
   return out;
 }
@@ -102,6 +122,44 @@ export async function editItem(params: {
   return decryptedFromRow(row, payload);
 }
 
+export async function toggleFavorite(id: string, next: boolean): Promise<void> {
+  await updateVaultItem({ id, is_favorite: next });
+}
+
 export async function trashItem(id: string): Promise<void> {
   await softDeleteVaultItem(id);
 }
+
+export async function restoreItem(id: string): Promise<void> {
+  await restoreVaultItem(id);
+}
+
+export async function purgeItem(id: string): Promise<void> {
+  await purgeVaultItem(id);
+}
+
+export interface DecryptedHistoryEntry {
+  id: string;
+  archived_at: string;
+  payload: VaultItemPayload;
+}
+
+export async function listDecryptedPasswordHistory(vaultItemId: string): Promise<DecryptedHistoryEntry[]> {
+  const key = useVaultLock.getState().requireKey();
+  const rows = await listPasswordHistory(vaultItemId);
+  const out: DecryptedHistoryEntry[] = [];
+  for (const row of rows) {
+    try {
+      const payload = await decryptPayload<VaultItemPayload>(key, {
+        ciphertext: row.payload_ciphertext,
+        iv: row.payload_iv,
+      });
+      out.push({ id: row.id, archived_at: row.archived_at, payload });
+    } catch {
+      // skip
+    }
+  }
+  return out;
+}
+
+export type { PasswordHistoryRow };

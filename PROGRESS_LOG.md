@@ -407,6 +407,74 @@ Categorias, tags, busqueda, tipos adicionales (SSH, tarjeta, etc), papelera con 
 
 ---
 
+## Fase 5 — CRUD extendido (cierre) ✅
+
+**Fecha:** 2026-07-03 (noche)
+
+### Qué se añadió sobre el core anterior
+
+**Migración `20260703000014_password_history_trigger.sql`:**
+- `snapshot_vault_item_history()` trigger SECURITY DEFINER con `SET search_path = pg_catalog, public`.
+- BEFORE UPDATE en `vault_items`: si `payload_ciphertext IS DISTINCT FROM OLD.payload_ciphertext`, copia la fila vieja a `password_history` con `archived_at = NOW()`.
+- Solo snapshotea cuando el payload cambia — cambios de `is_favorite` / `category_id` no ensucian el historial.
+- `REVOKE EXECUTE` de PUBLIC/anon/authenticated. Advisors → 0.
+
+**Repositorios nuevos:**
+- `repositories/categories.ts` — list/insert/update/delete.
+- `repositories/tags.ts` — list/insert/update/delete.
+- `repositories/item-tags.ts` — `listItemTags`, `setItemTags(vaultItemId, tagIds[])` (delete-all + insert; simple y aceptable para el volumen esperado por item).
+- `repositories/vault-items.ts` extendido: `restoreVaultItem`, `purgeVaultItem`, `listTrashedVaultItems`, `listPasswordHistory`.
+
+**Servicios nuevos:**
+- `services/categories.ts` — `listDecryptedCategories`, `createCategory`, `renameCategory`, `removeCategory`. Nombre cifrado con la master key.
+- `services/tags.ts` — `listDecryptedTags`, `createTag`, `renameTag`, `removeTag`, `assignTagsToItem`, `fetchItemTagsMap` (Map `vaultItemId → tagIds[]`).
+- `services/vault-items.ts` extendido: `listDecryptedTrash`, `toggleFavorite`, `restoreItem`, `purgeItem`, `listDecryptedPasswordHistory`.
+
+**Validators:** `noteItemSchema`, `apiKeyItemSchema`, `sshKeyItemSchema`, `cardItemSchema`, `identityItemSchema`, `totpItemSchema`, `categorySchema`, `tagSchema`.
+
+**UI nueva:**
+- `/categories` — CRUD de categorías con rename inline y borrar (con confirm). Delete cascada a `vault_items.category_id → NULL`.
+- `/tags` — mismo patrón, con chips visuales por color.
+- `/trash` — lista items en papelera con `Restaurar` y `Purgar` (confirm irrevocable).
+- `components/vault/category-select.tsx` — `<select>` nativo con "Sin categoria" + categorías descifradas.
+- `components/vault/tag-selector.tsx` — chips toggle multiselect.
+- `components/vault/item-meta-fields.tsx` — bloque compartido (category select + tag selector + favorito checkbox).
+- `components/vault/typed-item-forms.tsx` — wrapper genérico `ItemFormWrapper<TInput, TPayload>` + un componente por tipo: `NoteItemForm`, `ApiKeyItemForm`, `SshKeyItemForm`, `CardItemForm`, `IdentityItemForm`, `TotpItemForm`. Todos reutilizan el mismo `ItemMetaFields` y la misma orquestación (encrypt + assign tags + navigate).
+- `PasswordItemForm` refactor para usar `ItemMetaFields` + cargar tags actuales en modo edit.
+- `VaultList` reescrito: buscador con debouncing implícito (React batch), filtros por tipo/categoría/tag + toggle "solo favoritos", contador `filtered.length / items.length`, botón favorito ★/☆ optimistic, carga en paralelo de items + categorías + tags + itemTagsMap con `Promise.all`.
+- `/vault/new` con selector de tipo (Button variant + label). `FormForType(type)` despacha al form correcto.
+- `/vault/[id]` despacha por `item.item_type` a `<EditForm/>`. Debajo, si hay historial cifrado, lo muestra descifrado (timestamp + nombre + password).
+- Home: nav completa (Nuevo, Categorías, Tags, Papelera, Logout).
+
+### Decisiones técnicas y por qué
+
+- **Trigger snapshot con `IS DISTINCT FROM`** en vez de `<>`. `IS DISTINCT FROM` trata NULL como valor y evita snapshots espurios en primeros updates. Semánticamente correcto para strings NOT NULL, pero es defensivo.
+- **`SECURITY DEFINER` para el snapshot trigger.** El INSERT en `password_history` desde un trigger disparado por un cliente autenticado corre con auth.uid() válido pero la policy del cliente puede rechazar (aunque las que definí lo permitirían). SECURITY DEFINER + `search_path` fijo lo aísla. REVOKE EXECUTE cierra la superficie RPC.
+- **`setItemTags` = delete-all + insert.** Alternativa: computar delta insert/delete. Descartado porque el volumen por item es < 20 tags típicamente y la simplicidad > la optimización. Documentado.
+- **Categoría y tag names cifrados como JSON string.** Reutiliza `encryptPayload/decryptPayload` — misma primitiva. Overhead ~2 bytes por comilla; irrelevante.
+- **Búsqueda 100% client-side.** Requisito Zero-Knowledge: el server no puede indexar payload cifrado. `matchesFilters` concatena campos clave de cada payload y hace `.toLowerCase().includes(needle)` — casi instantáneo hasta ~10k items.
+- **`ItemFormWrapper` genérico con cast puntual del resolver Zod.** Zod v4 amplió los generics de tipos internos y `@hookform/resolvers/zod` v5 no matchea exactamente con schemas parametrizados por `TInput extends FieldValues`. El cast `(zodResolver as unknown as (s: unknown) => Resolver<TInput>)(schema)` es puntual y documentado; el runtime funciona idéntico. Alternativa (copiar el mismo useForm en 6 componentes) sería 6× más código sin ganancia real de tipo-seguridad end-to-end.
+- **Restaurar setea `deleted_at = NULL`.** Purgar borra permanentemente; el CASCADE en `password_history.vault_item_id` limpia el historial también — deseable.
+- **Búsqueda incluye `notes`, `body`, `cardholder`, `issuer`, `full_name`.** Cubre casi todos los tipos. No se busca en `password`, `private_key`, `number` (CVV, etc) para no exponerlos si el usuario tiene la pantalla abierta a la vista de terceros durante la búsqueda.
+
+### Pendiente
+
+- **Password history — restaurar una versión anterior.** El listado ya muestra las versiones cifradas; falta botón "Restaurar esta version" que copie el payload a la actual.
+- **Rotación de password_history.** Ahora acumula indefinidamente. Añadir job (Edge Function scheduled) o trigger que mantenga N versiones más recientes.
+- **Dominio en búsqueda con normalización.** Buscar "github" debería matchear `https://github.com/…`. Hoy funciona por substring — aceptable, pero mejorable.
+- **Reordenar categorías** con drag & drop → escribir `sort_order`. Schema listo, UI pendiente.
+
+### Verificación
+
+- ✅ `supabase db push` — migración 14 aplicada.
+- ✅ `get_advisors security` — `[]`.
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — 0 errors, 2 warnings del React Compiler sobre `watch()` de RHF (los mismos de antes, no rompen build).
+- ✅ `npm run build` — 15 rutas OK. Home, auth, setup-vault, unlock, vault/new, vault/[id], categories, tags, trash, auth/callback.
+- ✅ `npm test` — 85/85 tests passing.
+
+---
+
 ## Fase 8 — README (PARCIAL) ✅
 
 **Fecha:** 2026-07-03

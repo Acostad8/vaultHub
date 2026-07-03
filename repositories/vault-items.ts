@@ -83,3 +83,46 @@ export async function softDeleteVaultItem(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
 }
+
+export async function restoreVaultItem(id: string): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.from("vault_items").update({ deleted_at: null }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function purgeVaultItem(id: string): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.from("vault_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function listTrashedVaultItems(): Promise<VaultItemRow[]> {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("vault_items")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as VaultItemRow[];
+}
+
+export interface PasswordHistoryRow {
+  id: string;
+  vault_item_id: string;
+  user_id: string;
+  payload_ciphertext: string;
+  payload_iv: string;
+  archived_at: string;
+}
+
+export async function listPasswordHistory(vaultItemId: string): Promise<PasswordHistoryRow[]> {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("password_history")
+    .select("*")
+    .eq("vault_item_id", vaultItemId)
+    .order("archived_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PasswordHistoryRow[];
+}

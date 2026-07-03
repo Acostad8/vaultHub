@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createItem, editItem } from "@/services/vault-items";
+import { assignTagsToItem, fetchItemTagsMap } from "@/services/tags";
 import { generatePassword, evaluatePasswordStrength } from "@/lib/password";
 import { passwordItemSchema, type PasswordItemInput } from "@/validators/vault";
 import type { PasswordPayload, VaultItemDecrypted } from "@/types/vault";
+import { ItemMetaFields } from "./item-meta-fields";
 
 interface Props {
   mode: "create" | "edit";
@@ -21,6 +23,9 @@ interface Props {
 export function PasswordItemForm({ mode, existing }: Props) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(existing?.category_id ?? null);
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [isFavorite, setIsFavorite] = useState<boolean>(existing?.is_favorite ?? false);
 
   const {
     register,
@@ -42,6 +47,21 @@ export function PasswordItemForm({ mode, existing }: Props) {
   const password = watch("password");
   const strength = password ? evaluatePasswordStrength(password) : null;
 
+  useEffect(() => {
+    if (mode !== "edit" || !existing) return;
+    let cancelled = false;
+    fetchItemTagsMap()
+      .then((map) => {
+        if (!cancelled) setTagIds(map.get(existing.id) ?? []);
+      })
+      .catch(() => {
+        // no fatal
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [existing, mode]);
+
   function handleGenerate() {
     const generated = generatePassword({ length: 20 });
     setValue("password", generated, { shouldValidate: true });
@@ -57,11 +77,27 @@ export function PasswordItemForm({ mode, existing }: Props) {
       notes: values.notes || undefined,
     };
     try {
+      let itemId: string;
       if (mode === "create") {
-        await createItem({ item_type: "password", payload });
+        const created = await createItem({
+          item_type: "password",
+          payload,
+          category_id: categoryId,
+          is_favorite: isFavorite,
+        });
+        itemId = created.id;
       } else if (existing) {
-        await editItem({ id: existing.id, payload });
+        const updated = await editItem({
+          id: existing.id,
+          payload,
+          category_id: categoryId,
+          is_favorite: isFavorite,
+        });
+        itemId = updated.id;
+      } else {
+        return;
       }
+      await assignTagsToItem(itemId, tagIds);
       router.push("/");
       router.refresh();
     } catch (err) {
@@ -106,6 +142,14 @@ export function PasswordItemForm({ mode, existing }: Props) {
           className="min-h-24 w-full rounded-md border border-zinc-200 bg-transparent p-2 text-sm dark:border-zinc-800"
         />
       </div>
+      <ItemMetaFields
+        categoryId={categoryId}
+        onCategoryChange={setCategoryId}
+        tagIds={tagIds}
+        onTagsChange={setTagIds}
+        isFavorite={isFavorite}
+        onFavoriteChange={setIsFavorite}
+      />
       {serverError ? <p className="text-sm text-red-600">{serverError}</p> : null}
       <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? "Guardando…" : mode === "create" ? "Crear" : "Guardar"}

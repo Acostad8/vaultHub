@@ -38,13 +38,13 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Documentar el flujo completo en `docs/CRYPTO_FLOW.md`
 
 ## Fase 5 — CRUD de credenciales
-- [x] Crear/ver/editar/eliminar credenciales (con cifrado/descifrado transparente) — password type
-- [ ] Categorías y carpetas
-- [ ] Etiquetas múltiples
-- [x] Favoritos (schema + repo listo; UI toggle pendiente)
-- [x] Papelera (soft delete) — restaurar y eliminar permanente pendiente
-- [ ] Búsqueda y filtros (por nombre, usuario, dominio, categoría, etiqueta)
-- [ ] Soporte para tipos adicionales: notas seguras, API keys, claves SSH, tokens (schemas de types listos; UI de cada tipo pendiente)
+- [x] Crear/ver/editar/eliminar credenciales (con cifrado/descifrado transparente)
+- [x] Categorías y carpetas
+- [x] Etiquetas múltiples
+- [x] Favoritos
+- [x] Papelera (soft delete) con restaurar y eliminar permanente
+- [x] Búsqueda y filtros (por nombre, usuario, dominio, categoría, etiqueta)
+- [x] Soporte para tipos adicionales: notas seguras, API keys, claves SSH, tokens
 
 ## Fase 6 — Dashboard y estadísticas
 - [ ] Resumen: total de cuentas, fuertes/débiles, duplicadas, favoritas (depende Fase 3+5)

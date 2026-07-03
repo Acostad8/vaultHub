@@ -8,7 +8,7 @@ Cosas que la sesión autónoma no pudo resolver sin comprometer seguridad o sin 
 
 Usuario creó proyecto `vaulthub` (`jawefdwrfjsnclnbwxby`, us-east-1), corrió `supabase link`, configuró `.env.local`. Todas las migraciones (1-12) aplicadas. Advisors de seguridad limpios. Ver `PROGRESS_LOG.md` cierre de Fase 2.
 
----
+--- 
 
 ## 2. Google OAuth — activación manual en dashboard Supabase
 

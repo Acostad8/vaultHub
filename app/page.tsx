@@ -14,20 +14,32 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">VaultHub</h1>
           <p className="text-xs text-zinc-500">{user?.email}</p>
         </div>
-        <div className="flex gap-2">
+        <nav className="flex flex-wrap items-center gap-2">
           <Link
             href="/vault/new"
             className={buttonVariants({ variant: "default", className: "" })}
           >
-            + Nuevo item
+            + Nuevo
+          </Link>
+          <Link
+            href="/categories"
+            className={buttonVariants({ variant: "outline", className: "" })}
+          >
+            Categorias
+          </Link>
+          <Link href="/tags" className={buttonVariants({ variant: "outline", className: "" })}>
+            Tags
+          </Link>
+          <Link href="/trash" className={buttonVariants({ variant: "outline", className: "" })}>
+            Papelera
           </Link>
           <LogoutButton />
-        </div>
+        </nav>
       </header>
       <VaultGate>
         <VaultList />
