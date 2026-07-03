@@ -11,21 +11,21 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Configurar cliente de Supabase (browser + server)
 
 ## Fase 2 — Conexión con Supabase y base de datos
-- [ ] Solicitar SUPABASE_URL y SUPABASE_ANON_KEY al usuario
-- [ ] Diseñar y crear migraciones SQL para: `profiles`, `vault_items`, `categories`, `tags`, `password_history`, `shared_items`, `audit_log`, `sessions`/`trusted_devices`
-- [ ] Crear ENUMs necesarios (tipo de item: password/nota/API key/SSH key/tarjeta, etc.)
-- [ ] Crear índices y foreign keys
-- [ ] Crear políticas RLS para cada tabla (comentadas)
-- [ ] Crear triggers necesarios (ej. `updated_at` automático)
-- [ ] Crear bucket de Storage para archivos adjuntos cifrados
-- [ ] Verificar que todas las migraciones corren limpias desde cero
+- [x] Solicitar SUPABASE_URL y SUPABASE_ANON_KEY al usuario
+- [x] Diseñar y crear migraciones SQL para: `profiles`, `vault_items`, `categories`, `tags`, `password_history`, `shared_items`, `audit_log`, `sessions`/`trusted_devices`
+- [x] Crear ENUMs necesarios (tipo de item: password/nota/API key/SSH key/tarjeta, etc.)
+- [x] Crear índices y foreign keys
+- [x] Crear políticas RLS para cada tabla (comentadas)
+- [x] Crear triggers necesarios (ej. `updated_at` automático)
+- [x] Crear bucket de Storage para archivos adjuntos cifrados
+- [x] Verificar que todas las migraciones corren limpias desde cero
 
 ## Fase 3 — Autenticación
-- [ ] Registro e inicio de sesión con email/password (Supabase Auth)
-- [ ] OAuth con Google
-- [ ] Verificación de correo
-- [ ] Recuperación de contraseña de cuenta (NO de la master key — son cosas distintas, ver CLAUDE.md)
-- [ ] Middleware de rutas protegidas
+- [x] Registro e inicio de sesión con email/password (Supabase Auth)
+- [x] OAuth con Google (código listo; requiere habilitar provider en dashboard Supabase)
+- [x] Verificación de correo
+- [x] Recuperación de contraseña de cuenta (NO de la master key — son cosas distintas, ver CLAUDE.md)
+- [x] Middleware de rutas protegidas
 
 ## Fase 4 — Módulo criptográfico Zero-Knowledge (crítico)
 - [x] Función de generación de salt por usuario (al registrarse)

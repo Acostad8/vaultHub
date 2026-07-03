@@ -238,6 +238,103 @@ Solo el algoritmo puro. El wiring con UI (QR, códigos de recuperación) requier
 
 ---
 
+## Fase 2 — Base de datos (CIERRE) ✅
+
+**Fecha:** 2026-07-03 (tarde)
+
+Bloqueo resuelto: usuario creó proyecto `vaulthub` (ref `jawefdwrfjsnclnbwxby`, us-east-1, ACTIVE_HEALTHY) y corrió `supabase link` + configuró `.env.local`.
+
+### Qué pasó
+
+1. Push inicial de migraciones 8-11 falló en la 8 con `ERROR: functions in index predicate must be marked IMMUTABLE (SQLSTATE 42P17)` — el índice `shared_items_active_idx` usaba `NOW()` (STABLE) en el WHERE. Postgres exige IMMUTABLE en predicados de índices parciales.
+2. Verificación: `supabase migration list` mostró 1-7 aplicadas, 8-11 pending. `list_tables` confirmó rollback completo de la 8 (tabla `shared_items` no existía). Cada migración corre en su propia transacción, así que 8 falló limpia sin dejar estado parcial.
+3. Corrección: reemplazado el índice parcial por uno completo `shared_items_recipient_expires_idx ON (shared_with_id, expires_at)` sin WHERE. El filtro `expires_at IS NULL OR expires_at > NOW()` ahora se aplica a nivel de query, apoyándose en range scan sobre el índice. Comentario en la migración explica el porqué.
+4. `supabase db push --include-all` — 8, 9, 10, 11 aplicadas.
+5. `list_tables` confirma 9 tablas (`profiles`, `categories`, `tags`, `vault_items`, `item_tags`, `password_history`, `shared_items`, `audit_log`, `trusted_devices`), todas con RLS habilitado.
+6. `get_advisors security` marcó 3 warns:
+   - `set_updated_at()` sin `search_path` fijo → posible search_path injection.
+   - `handle_new_user()` (SECURITY DEFINER) exponía `/rest/v1/rpc/handle_new_user` a anon y authenticated.
+7. Migración correctiva `20260703000012_harden_security_definer_functions.sql` — fija `search_path = pg_catalog, public` en `set_updated_at` y `REVOKE EXECUTE` de `handle_new_user` para PUBLIC/anon/authenticated (solo el trigger la puede invocar, corre como owner).
+8. Push OK, `get_advisors` retorna `[]`. Base 100% limpia.
+
+### Decisión sobre el índice
+
+Optamos por (b) del prompt del usuario: **índice completo sin predicado**. Justificación: la query dominante para el destinatario es `WHERE shared_with_id = $1 AND (expires_at IS NULL OR expires_at > NOW())`. Con el índice completo, Postgres puede hacer range scan por `shared_with_id` y filtrar `expires_at` en la mismalectura. Con opción (a) — índice parcial `WHERE expires_at IS NULL` — solo se acelera la mitad NULL; las filas con expiración futura harían table scan. Bajo (b) el índice sirve para ambos casos y para queries de admin ("todos mis shares emitidos").
+
+### Verificación
+
+- ✅ `supabase migration list` — todas locales y remotas coinciden.
+- ✅ `list_tables` — 9 tablas + RLS.
+- ✅ `get_advisors security` — 0 warnings, 0 errors.
+
+---
+
+## Fase 3 — Autenticación ✅
+
+**Fecha:** 2026-07-03 (tarde)
+
+### Qué se implementó
+
+**Validación (`validators/auth.ts`):**
+- Zod schemas para login, register, forgot-password, reset-password.
+- `emailSchema` normaliza (trim + lowercase).
+- Password de cuenta mínimo 10 chars (distinto del schema de master password — Fase 4).
+- `confirmPassword` con `refine()` cross-field.
+
+**Servicio (`services/auth.ts`):**
+- `signInWithPassword`, `signUpWithPassword`, `signInWithGoogle`, `requestPasswordReset`, `updateAccountPassword`, `signOut`.
+- Todos envuelven `createSupabaseBrowserClient()`. Cero acceso directo a `supabase.*` desde UI.
+- `emailRedirectTo` y `redirectTo` derivan `window.location.origin` en runtime (evita hardcodear URL de deploy).
+- `needsEmailConfirmation` se detecta por `!data.session` tras signup (patrón oficial de Supabase para "confirm email" activo).
+
+**UI (`app/(auth)/`):**
+- Route group `(auth)` con layout público centrado.
+- `/login` — form con RHF + Zod resolver. Extrajo `LoginForm` a componente separado para envolverlo en `<Suspense>` (Next 16 exige boundary alrededor de `useSearchParams()` en rutas pre-renderizadas). Muestra `error` de query string si venía del callback. Respeta `next` param para redirigir tras login.
+- `/register` — copy explicando explícitamente "esto es password de CUENTA, no la master password". Redirige a `/check-email` si `needsEmailConfirmation`.
+- `/forgot-password` — copy claro: "esto NO recupera tu master password — si la perdiste, tu vault es irrecuperable por diseño".
+- `/reset-password` — landing tras el link del email. Actualiza solo la password Supabase Auth.
+- `/check-email` — info page tras signup con email pending. Server Component leyendo `searchParams` (Next 15+ patrón async).
+- `GoogleButton` — client component reutilizado en login y register.
+- `LogoutButton` — importante: llama `useVaultLock().lock()` **antes** de `signOut()`, para que la master key se limpie de memoria incluso si el signOut tarda.
+
+**Callback (`app/auth/callback/route.ts`):**
+- Route handler GET que hace `exchangeCodeForSession(code)` server-side (PKCE flow de Supabase).
+- Redirige al `next` param al terminar. En error, vuelve a `/login?error=...` para que el usuario lo vea.
+
+**Middleware (`lib/supabase/middleware.ts` + `proxy.ts`):**
+- `getUser()` (NO `getSession()`) — verifica firma JWT contra Supabase; menos manipulable client-side.
+- `PUBLIC_ROUTES = { /login, /register, /forgot-password, /reset-password, /check-email }` + cualquier `/auth/*`.
+- `AUTH_ONLY_ROUTES = { /login, /register, /forgot-password }` — si el usuario ya tiene sesión y visita estas, redirige a `/`.
+- Ruta protegida sin sesión → redirect a `/login?next=<original>` para volver tras login.
+
+**Home protegida (`app/page.tsx`):**
+- Convertida a Server Component. Lee `supabase.auth.getUser()` y muestra email + botón de logout. El middleware garantiza que no se llega aquí sin sesión.
+
+### Decisiones técnicas y por qué
+
+- **`getUser()` en middleware, no `getSession()`.** getSession lee la cookie sin validar firma; getUser hace HTTP a Supabase para validar (más lento pero seguro contra tampering). Trade-off aceptado — es una request/req, pero está detrás de auth middleware.
+- **Password de cuenta ≥10 chars.** Supabase Auth default mínimo es 6, que es débil. 10 es un balance sin sobre-limitar. La master password (Fase 4 store) irá a un mínimo separado más alto cuando se implemente el flujo de setup del vault.
+- **Extracción de `LoginForm` para `<Suspense>`.** Alternativa era marcar la ruta `dynamic = "force-dynamic"`, pero perdería el static generation gratis. Suspense boundary es la solución oficial.
+- **`buttonVariants({...})` en `<Link>`** en vez de `<Button asChild>`. El `Button` del preset base-nova no expone `asChild` (usa `@base-ui/react/button`, no Radix Slot). Usar el CVA directamente evita fork del componente shadcn.
+- **`LogoutButton` limpia vault ANTES del signOut.** Si signOut tarda por red y el usuario cierra la pestaña, la master key ya está fuera de memoria — defensa en profundidad.
+- **`next` param en el redirect a login.** Preserva la intención del usuario tras auth.
+
+### Pendiente / dudas
+
+- **Google OAuth activo en dashboard.** El código llama `signInWithOAuth({ provider: "google" })`, pero para que funcione hay que habilitar Google como provider en Supabase Dashboard (Authentication → Providers → Google) y pegar Client ID/Secret de un OAuth Client de Google Cloud Console con la URL de callback `https://<project>.supabase.co/auth/v1/callback`. **No lo puedo activar autónomamente**; anotado como pendiente de config manual.
+- **Verificación de email:** implementada vía Supabase Auth default. Si el usuario configura templates propios, sustituir en el dashboard.
+- **UI para "confirmar email de nuevo" (resend):** no implementada. Baja prioridad — el link ya expira y el usuario puede intentar `/register` de nuevo.
+
+### Verificación
+
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — sin errores.
+- ✅ `npm run build` — compila; rutas `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/check-email`, `/auth/callback` presentes. Middleware detectado.
+- ✅ `npm test` — 85/85 tests passing.
+- ✅ Auditoría manual: la UI **nunca** importa `@supabase/*` directamente — todo pasa por `services/auth.ts`.
+
+---
+
 ## Fase 8 — README (PARCIAL) ✅
 
 **Fecha:** 2026-07-03
