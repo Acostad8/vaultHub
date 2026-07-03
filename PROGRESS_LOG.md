@@ -335,6 +335,78 @@ Optamos por (b) del prompt del usuario: **índice completo sin predicado**. Just
 
 ---
 
+## Fase 5 — CRUD core del vault ✅
+
+**Fecha:** 2026-07-03 (tarde)
+
+Core: unlock flow (setup + unlock), CRUD basico de items tipo `password`.
+Categorias, tags, busqueda, tipos adicionales (SSH, tarjeta, etc), papelera con restaurar/purga — pendientes de sesiones futuras.
+
+### Qué se implementó
+
+**Migración `20260703000013_profiles_verifier.sql`:**
+- Añade `verifier_ciphertext`, `verifier_iv`, `vault_initialized_at` a `profiles`.
+- CHECK constraint: los tres van juntos o los tres NULL (evita estado inconsistente).
+- Verifier = plaintext constante ("vaulthub-verify-v1") cifrado con la master key derivada. Se usa para comprobar la master password al desbloquear sin transmitirla.
+
+**Tipos (`types/vault.ts`):**
+- `VaultItemType` unión con los 7 tipos del ENUM SQL.
+- Shape del payload por tipo: `PasswordPayload`, `NotePayload`, `ApiKeyPayload`, `SshKeyPayload`, `CardPayload`, `IdentityPayload`, `TotpPayload`.
+- `VaultItemRow` (cifrado) y `VaultItemDecrypted<T>` (con payload descifrado).
+
+**Repositorios (`repositories/`):**
+- `profile.ts` — `fetchMyProfile`, `saveVaultVerifier`, `touchLastUnlock`. Solo mueve datos, cero crypto.
+- `vault-items.ts` — `listActiveVaultItems`, `getVaultItem`, `insertVaultItem`, `updateVaultItem`, `softDeleteVaultItem`. Todos operan sobre ciphertext.
+
+**Servicios (`services/`):**
+- `vault.ts` — `setupVault(masterPassword)`, `unlockVault(masterPassword)`, `isVaultInitialized`. Orquesta derivación PBKDF2 + cifrado del verifier + persistencia. En unlock, decrypt del verifier: si falla o el plaintext no matchea el esperado, lanza "Master password incorrecta".
+- `vault-items.ts` — `listDecryptedItems`, `getDecryptedItem`, `createItem`, `editItem`, `trashItem`. Toma la key del store `useVaultLock.requireKey()` (lanza si el vault está bloqueado). En `listDecrypted`, items que no descifran se skipean silenciosamente (probablemente cifrados con otra key/corruptos; la UI puede detectar la diferencia entre `rows.length` y `decrypted.length`).
+
+**Validación (`validators/vault.ts`):**
+- `setupVaultSchema` — master password min 12 chars + confirm + checkbox `acknowledge` (usuario debe reconocer que no hay recuperación).
+- `unlockVaultSchema` — solo master password.
+- `passwordItemSchema` — name obligatorio, resto opcional con maxes conservadores.
+
+**UI:**
+- `app/(app)/layout.tsx` — Server Component gate: redirige a /login si no hay sesión.
+- `app/(app)/setup-vault/page.tsx` — form con RHF, muestra fortaleza en vivo via `evaluatePasswordStrength`, checkbox de reconocimiento obligatorio.
+- `app/(app)/unlock/page.tsx` — form simple, redirige a / al desbloquear.
+- `app/(app)/vault/new/page.tsx` — crear item.
+- `app/(app)/vault/[id]/page.tsx` — editar. Usa `use(params)` (Next 15+ async params).
+- `components/vault/vault-gate.tsx` — client component: carga profile, redirige a setup si `!vault_initialized_at`, a unlock si `!isUnlocked`. Monta `useAutoLock` con `profile.auto_lock_minutes`.
+- `components/vault/vault-list.tsx` — lista de items. Effect con flag `cancelled` para evitar setState tras unmount (satisface la lint rule `set-state-in-effect` del React Compiler).
+- `components/vault/password-item-form.tsx` — form con RHF. Botón "Generar" invoca `generatePassword({ length: 20 })` (usa el módulo de Fase 6). Strength meter en vivo.
+- `app/page.tsx` — home protegida. Muestra email + botones "Nuevo item" y "Cerrar sesión", monta `<VaultGate><VaultList/></VaultGate>`.
+
+### Decisiones técnicas y por qué
+
+- **Verifier pattern.** La única forma canónica de validar la master password en Zero-Knowledge sin transmitirla. Alternativa (hash de la password derivada) requiere pre-image resistance del hash + no revela nada al servidor tampoco, pero el verifier es más simple y estándar (Bitwarden usa una variante equivalente).
+- **`SerializablePayload = unknown` en `lib/crypto/payload.ts`.** El constraint anterior (`Record<string,unknown> | ...`) chocaba con interfaces tipadas (falta index signature). Ahora la API es intencionalmente laxa — la validación de shape ocurre post-descifrado con Zod, no en el cifrado. Los tests siguen pasando.
+- **Zod v4 rechaza `z.literal(true, { errorMap: ... })`.** Migrado a `z.boolean().refine(v => v === true, { message })`.
+- **`VaultGate` es client component.** Necesita leer el store Zustand (`isUnlocked`), que solo existe client-side. El auth gate a nivel de sesión sigue en el layout server component + middleware.
+- **`listDecryptedItems` skipea silenciosamente items no descifrables.** Diseño defensivo: si por alguna razón hay un item cifrado con una key distinta (ej. tras un cambio futuro de master password sin re-cifrar todo), no rompe la lista completa. La discrepancia se puede exponer en la UI en Fase 6/8.
+- **`LogoutButton` limpia master key ANTES de `signOut`.** Documentado ya en Fase 3, refrescado aquí.
+- **Master password default min = 12 chars.** Más alto que account password (10). Justificación: el account password lo protege bcrypt de Supabase; la master password protege PBKDF2 con salt público — si un atacante consigue el verifier + salt, puede hacer offline attack. 12 chars sube el costo.
+
+### Pendiente / dudas
+
+- **Categorías + tags** — el schema DB existe; falta capa services/repositories + UI.
+- **Búsqueda/filtros** — todo client-side (por diseño Zero-Knowledge), pendiente de wire-up con `listDecryptedItems`.
+- **Papelera con restaurar/purgar** — soft delete ya funciona; falta la UI de "Ver papelera" + botones de restaurar/purgar.
+- **Tipos adicionales de item** — types + payloads definidos; hace falta un form por cada tipo (note, api_key, ssh_key, card, identity, totp) o un form dinámico basado en el tipo.
+- **Favoritos toggle en la lista** — schema + repo soportan `is_favorite`; falta el botón en la UI.
+- **Password history automático** — al editar un item, insertar el payload previo en `password_history`. Pendiente.
+
+### Verificación
+
+- ✅ `supabase db push` — migración verifier aplicada, DB al día.
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — 0 errores; 2 warnings del React Compiler sobre `watch()` de react-hook-form (marca los componentes como no-memoizables, no rompe funcionalidad).
+- ✅ `npm run build` — todas las rutas presentes: `/`, `/setup-vault`, `/unlock`, `/vault/new`, `/vault/[id]`, más las de auth.
+- ✅ `npm test` — 85/85 tests passing (los tests de crypto siguen verdes tras el cambio de `SerializablePayload` a `unknown`).
+
+---
+
 ## Fase 8 — README (PARCIAL) ✅
 
 **Fecha:** 2026-07-03

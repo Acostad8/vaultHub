@@ -5,13 +5,10 @@
 import { stringToBytes, bytesToString } from "./base64";
 import { encryptBytes, decryptBytes, type CipherEnvelope } from "./aes";
 
-export type SerializablePayload =
-  | Record<string, unknown>
-  | ReadonlyArray<unknown>
-  | string
-  | number
-  | boolean
-  | null;
+// Cualquier valor JSON-serializable. La API es intencionalmente laxa —
+// JSON.stringify acepta unknown; la validacion del shape ocurre despues
+// del descifrado con Zod, no aqui (GCM valida bytes, no estructura).
+export type SerializablePayload = unknown;
 
 /**
  * Serializa un objeto a JSON y lo cifra. Uso: payload de vault_items,
@@ -19,7 +16,7 @@ export type SerializablePayload =
  */
 export async function encryptPayload(
   key: CryptoKey,
-  payload: SerializablePayload,
+  payload: unknown,
 ): Promise<CipherEnvelope> {
   const json = JSON.stringify(payload);
   const bytes = stringToBytes(json);
@@ -31,7 +28,7 @@ export async function encryptPayload(
  * validar la forma con Zod (los cifrados NO tienen schema — GCM solo
  * valida integridad de bytes, no estructura).
  */
-export async function decryptPayload<T extends SerializablePayload>(
+export async function decryptPayload<T = unknown>(
   key: CryptoKey,
   envelope: CipherEnvelope,
 ): Promise<T> {
