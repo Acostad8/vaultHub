@@ -1,7 +1,9 @@
+import "@/lib/undici-fix";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
+import { supabaseFetch } from "./fetch";
 
 // Rutas publicas — accesibles sin sesion. Todo lo demas exige login.
 const PUBLIC_ROUTES = new Set([
@@ -40,6 +42,7 @@ export async function updateSupabaseSession(request: NextRequest) {
         }
       },
     },
+    global: { fetch: supabaseFetch },
   });
 
   // Importante: getUser (no getSession) — verifica la firma del JWT contra Supabase.

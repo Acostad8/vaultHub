@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
+import { supabaseFetch } from "./fetch";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -22,5 +23,6 @@ export async function createSupabaseServerClient() {
         }
       },
     },
+    global: { fetch: supabaseFetch },
   });
 }
