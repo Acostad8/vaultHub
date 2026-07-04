@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/services/auth";
@@ -26,8 +27,15 @@ export function LogoutButton() {
   }
 
   return (
-    <Button variant="outline" onClick={handleClick} disabled={loading}>
-      {loading ? "Cerrando…" : "Cerrar sesion"}
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleClick}
+      disabled={loading}
+      aria-label={loading ? "Cerrando sesion" : "Cerrar sesion"}
+      title="Cerrar sesion"
+    >
+      <LogOut className="size-4" />
     </Button>
   );
 }
