@@ -47,9 +47,9 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Soporte para tipos adicionales: notas seguras, API keys, claves SSH, tokens
 
 ## Fase 6 — Dashboard y estadísticas
-- [ ] Resumen: total de cuentas, fuertes/débiles, duplicadas, favoritas (depende Fase 3+5)
+- [x] Resumen: total de cuentas, fuertes/débiles, duplicadas, favoritas
 - [x] Analizador de fortaleza (entropía, tiempo estimado de ruptura)
-- [ ] Detección de contraseñas duplicadas (depende Fase 3+5)
+- [x] Detección de contraseñas duplicadas
 - [x] Integración HaveIBeenPwned (k-Anonymity, solo prefijo SHA-1)
 - [x] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
 

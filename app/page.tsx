@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Folder, Plus, Shield, Tag, Trash2 } from "lucide-react";
+import { Folder, Plus, Shield, Sparkles, Tag, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -66,6 +66,13 @@ export default async function Home() {
             >
               <Tag className="size-4" />
               Tags
+            </Link>
+            <Link
+              href="/generator"
+              className={buttonVariants({ variant: "outline", className: "gap-2" })}
+            >
+              <Sparkles className="size-4" />
+              Generador
             </Link>
             <Link
               href="/trash"

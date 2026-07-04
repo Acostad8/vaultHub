@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createItem, editItem } from "@/services/vault-items";
 import { assignTagsToItem, fetchItemTagsMap } from "@/services/tags";
-import { generatePassword, evaluatePasswordStrength } from "@/lib/password";
+import { checkHibp, generatePassword, evaluatePasswordStrength } from "@/lib/password";
 import { passwordItemSchema, type PasswordItemInput } from "@/validators/vault";
 import type { PasswordPayload, VaultItemDecrypted } from "@/types/vault";
 import { ItemMetaFields } from "./item-meta-fields";
@@ -28,6 +28,13 @@ export function PasswordItemForm({ mode, existing }: Props) {
   const [categoryId, setCategoryId] = useState<string | null>(existing?.category_id ?? null);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [isFavorite, setIsFavorite] = useState<boolean>(existing?.is_favorite ?? false);
+  const [hibpState, setHibpState] = useState<
+    | { state: "idle" }
+    | { state: "loading" }
+    | { state: "safe" }
+    | { state: "breached"; count: number }
+    | { state: "error"; message: string }
+  >({ state: "idle" });
 
   const {
     register,
@@ -67,6 +74,19 @@ export function PasswordItemForm({ mode, existing }: Props) {
   function handleGenerate() {
     const generated = generatePassword({ length: 20 });
     setValue("password", generated, { shouldValidate: true });
+    setHibpState({ state: "idle" });
+  }
+
+  async function handleCheckHibp() {
+    if (!password) return;
+    setHibpState({ state: "loading" });
+    try {
+      const r = await checkHibp(password);
+      if (r.breached) setHibpState({ state: "breached", count: r.count });
+      else setHibpState({ state: "safe" });
+    } catch (err) {
+      setHibpState({ state: "error", message: errorMessage(err, "HIBP no disponible") });
+    }
   }
 
   async function onSubmit(values: PasswordItemInput) {
@@ -125,15 +145,39 @@ export function PasswordItemForm({ mode, existing }: Props) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Button type="button" size="xs" variant="outline" onClick={handleGenerate}>
-            Generar
-          </Button>
+          <div className="flex gap-1.5">
+            <Button type="button" size="xs" variant="outline" onClick={handleGenerate}>
+              Generar
+            </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={handleCheckHibp}
+              disabled={!password || hibpState.state === "loading"}
+            >
+              {hibpState.state === "loading" ? "Chequeando…" : "Chequear HIBP"}
+            </Button>
+          </div>
         </div>
         <Input id="password" type="text" {...register("password")} />
         {strength ? (
           <p className="text-xs text-zinc-500">
             {strength.label} · {strength.entropyBits.toFixed(0)} bits · {strength.crackDisplay}
           </p>
+        ) : null}
+        {hibpState.state === "safe" ? (
+          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+            No aparece en breaches conocidos.
+          </p>
+        ) : null}
+        {hibpState.state === "breached" ? (
+          <p className="text-xs text-red-600 dark:text-red-400">
+            Comprometido: aparece {hibpState.count.toLocaleString()} veces en HIBP.
+          </p>
+        ) : null}
+        {hibpState.state === "error" ? (
+          <p className="text-xs text-amber-700 dark:text-amber-300">{hibpState.message}</p>
         ) : null}
       </div>
       <div className="space-y-2">

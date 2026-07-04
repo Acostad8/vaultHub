@@ -28,7 +28,9 @@ import {
 } from "@/services/vault-items";
 import { listDecryptedCategories, type DecryptedCategory } from "@/services/categories";
 import { fetchItemTagsMap, listDecryptedTags, type DecryptedTag } from "@/services/tags";
+import { analyzeVault } from "@/services/vault-analysis";
 import type { VaultItemDecrypted, VaultItemType } from "@/types/vault";
+import { DashboardSummary } from "./dashboard-summary";
 
 const TYPE_META: Record<
   VaultItemType,
@@ -80,28 +82,6 @@ function matchesFilters(
   return hay.includes(needle);
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex size-9 items-center justify-center rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-        <Icon className="size-4" />
-      </div>
-      <div>
-        <div className="text-lg font-semibold leading-none">{value}</div>
-        <div className="mt-1 text-xs text-zinc-500">{label}</div>
-      </div>
-    </div>
-  );
-}
-
 export function VaultList() {
   const [items, setItems] = useState<VaultItemDecrypted[] | null>(null);
   const [categories, setCategories] = useState<DecryptedCategory[]>([]);
@@ -145,13 +125,7 @@ export function VaultList() {
     return items.filter((it) => matchesFilters(it, itemTagsMap.get(it.id) ?? [], filters));
   }, [items, itemTagsMap, filters]);
 
-  const stats = useMemo(() => {
-    if (!items) return { total: 0, favorites: 0 };
-    return {
-      total: items.length,
-      favorites: items.filter((i) => i.is_favorite).length,
-    };
-  }, [items]);
+  const analysis = useMemo(() => (items ? analyzeVault(items) : null), [items]);
 
   async function handleDelete(id: string) {
     if (!confirm("Enviar a la papelera?")) return;
@@ -184,11 +158,7 @@ export function VaultList() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Total de items" value={stats.total} icon={ShieldCheck} />
-        <StatCard label="Favoritos" value={stats.favorites} icon={Star} />
-        <StatCard label="Categorias" value={categories.length} icon={Inbox} />
-      </div>
+      {analysis ? <DashboardSummary analysis={analysis} /> : null}
 
       <div className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <InputWithIcon
