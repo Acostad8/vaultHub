@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { useVaultLock } from "@/store/vault-lock";
+import { logAudit } from "@/services/audit";
 
 interface AutoLockOptions {
   /** Minutos de inactividad tras los que se limpia la master key. */
@@ -38,12 +39,16 @@ export function useAutoLock({ autoLockMinutes, lockOnHidden = true }: AutoLockOp
 
     // ---- Poll de timeout ----
     const pollMs = 15_000;
-    const pollId = window.setInterval(() => checkTimeout(autoLockMinutes), pollMs);
+    const pollId = window.setInterval(() => {
+      const wasLocked = checkTimeout(autoLockMinutes);
+      if (wasLocked) void logAudit("vault_lock", { reason: "inactivity" });
+    }, pollMs);
 
     // ---- Pestana oculta ----
     const onVisibility = () => {
       if (lockOnHidden && document.visibilityState === "hidden") {
         lock();
+        void logAudit("vault_lock", { reason: "tab_hidden" });
       }
     };
     document.addEventListener("visibilitychange", onVisibility);

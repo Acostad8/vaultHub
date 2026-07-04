@@ -12,6 +12,7 @@ import type {
   ForgotPasswordInput,
   ResetPasswordInput,
 } from "@/validators/auth";
+import { logAudit } from "@/services/audit";
 
 function getSiteOrigin(): string {
   if (typeof window === "undefined") {
@@ -27,6 +28,7 @@ export async function signInWithPassword(input: LoginInput): Promise<void> {
     password: input.password,
   });
   if (error) throw error;
+  void logAudit("login", { method: "password" });
 }
 
 export async function signUpWithPassword(input: RegisterInput): Promise<{
@@ -75,6 +77,8 @@ export async function updateAccountPassword(input: ResetPasswordInput): Promise<
 
 export async function signOut(): Promise<void> {
   const supabase = createSupabaseBrowserClient();
+  // Log ANTES del signOut — despues no hay sesion para insertar.
+  await logAudit("logout");
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }

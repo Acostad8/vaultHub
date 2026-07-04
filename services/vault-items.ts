@@ -15,6 +15,7 @@ import {
 } from "@/repositories/vault-items";
 import type { VaultItemDecrypted, VaultItemPayload, VaultItemRow, VaultItemType } from "@/types/vault";
 import { useVaultLock } from "@/store/vault-lock";
+import { logAudit } from "@/services/audit";
 
 function decryptedFromRow<T extends VaultItemPayload>(
   row: VaultItemRow,
@@ -92,6 +93,7 @@ export async function createItem(params: {
     payload_iv: envelope.iv,
     is_favorite: params.is_favorite,
   });
+  void logAudit("item_create", { id: row.id, item_type: params.item_type });
   return decryptedFromRow(row, params.payload);
 }
 
@@ -119,6 +121,7 @@ export async function editItem(params: {
       ciphertext: row.payload_ciphertext,
       iv: row.payload_iv,
     }));
+  void logAudit("item_update", { id: params.id });
   return decryptedFromRow(row, payload);
 }
 
@@ -128,14 +131,17 @@ export async function toggleFavorite(id: string, next: boolean): Promise<void> {
 
 export async function trashItem(id: string): Promise<void> {
   await softDeleteVaultItem(id);
+  void logAudit("item_delete", { id, kind: "trash" });
 }
 
 export async function restoreItem(id: string): Promise<void> {
   await restoreVaultItem(id);
+  void logAudit("item_restore", { id });
 }
 
 export async function purgeItem(id: string): Promise<void> {
   await purgeVaultItem(id);
+  void logAudit("item_delete", { id, kind: "purge" });
 }
 
 export interface DecryptedHistoryEntry {

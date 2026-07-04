@@ -7,6 +7,7 @@ import { errorMessage } from "@/lib/errors";
 import { Card } from "@/components/ui/card";
 import { VaultGate } from "@/components/vault/vault-gate";
 import { PageHeader } from "@/components/vault/page-header";
+import { TotpViewer } from "@/components/vault/totp-viewer";
 import { PasswordItemForm } from "@/components/vault/password-item-form";
 import {
   ApiKeyItemForm,
@@ -100,6 +101,16 @@ export default function EditVaultItemPage({ params }: { params: Promise<{ id: st
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <VaultGate>
         <PageHeader title="Editar item" description="Los cambios se cifran antes de guardarse." />
+
+        {item && item.item_type === "totp" ? (
+          <div className="mb-4">
+            <TotpViewer
+              secret={(item.payload as { secret: string }).secret}
+              issuer={(item.payload as { issuer?: string }).issuer}
+              name={(item.payload as { name: string }).name}
+            />
+          </div>
+        ) : null}
 
         <Card className="p-5">
           {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -54,14 +54,14 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
 
 ## Fase 7 — Funciones avanzadas
-- [ ] 2FA con TOTP (QR + códigos de recuperación) — algoritmo TOTP RFC 6238 listo en `lib/totp/`
-- [ ] Historial de cambios por credencial (cifrado)
-- [ ] Auditoría (login, logout, desbloqueo, exportación, cambios, compartidos)
-- [ ] Sesiones activas y cierre remoto
-- [ ] Dispositivos confiables
-- [ ] Compartir credenciales con permisos (lectura/edición) y expiración
-- [ ] Exportar/importar backup en JSON cifrado
-- [ ] Archivos adjuntos cifrados (PDF, TXT, DOCX, JSON, CSV)
+- [x] TOTP viewer para items tipo `totp` (RFC 6238, countdown). 2FA de cuenta (QR + recovery codes via Supabase MFA) pendiente.
+- [x] Historial de cambios por credencial (cifrado) — trigger `snapshot_vault_item_history` + UI en `/vault/[id]`
+- [x] Auditoría (login, logout, desbloqueo, exportación, cambios) — página `/audit`
+- [ ] Sesiones activas y cierre remoto (schema `trusted_devices` listo; UI pendiente)
+- [ ] Dispositivos confiables (idem)
+- [ ] Compartir credenciales con permisos (lectura/edición) y expiración — schema listo, requiere par asimétrico por usuario (ver `DECISIONS_NEEDED`)
+- [x] Exportar/importar backup en JSON cifrado — página `/backup`
+- [ ] Archivos adjuntos cifrados (PDF, TXT, DOCX, JSON, CSV) — bucket + policies listos; UI pendiente
 
 ## Fase 8 — Pulido, pruebas y documentación
 - [ ] Modo claro/oscuro, responsive, skeletons, toasts, confirmaciones
