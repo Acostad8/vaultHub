@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -92,7 +94,7 @@ export function VaultList() {
         setTags(tgs);
         setItemTagsMap(tagMap);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Error");
+        if (!cancelled) setError(errorMessage(err, "Error"));
       }
     })();
     return () => {

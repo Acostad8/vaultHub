@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -37,7 +39,7 @@ export function LoginForm() {
       router.push(nextParam ?? "/");
       router.refresh();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error al iniciar sesion");
+      setServerError(errorMessage(err, "Error al iniciar sesion"));
     }
   }
 

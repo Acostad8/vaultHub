@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -20,7 +22,7 @@ function TrashInner() {
         if (!cancelled) setItems(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Error");
+        if (!cancelled) setError(errorMessage(err, "Error"));
       });
     return () => {
       cancelled = true;

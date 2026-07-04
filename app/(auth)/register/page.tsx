@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -38,7 +40,7 @@ export default function RegisterPage() {
         router.refresh();
       }
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error al registrarse");
+      setServerError(errorMessage(err, "Error al registrarse"));
     }
   }
 

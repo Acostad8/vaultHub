@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useEffect, useState, use } from "react";
 
@@ -86,7 +88,7 @@ export default function EditVaultItemPage({ params }: { params: Promise<{ id: st
         const hist = await listDecryptedPasswordHistory(id);
         if (!cancelled) setHistory(hist);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Error");
+        if (!cancelled) setError(errorMessage(err, "Error"));
       }
     })();
     return () => {

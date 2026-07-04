@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -123,7 +125,7 @@ function ItemFormWrapper<TInput extends FieldValues, TPayload extends VaultItemP
       router.push("/");
       router.refresh();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error guardando");
+      setServerError(errorMessage(err, "Error guardando"));
     }
   }
 

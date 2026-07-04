@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,7 +50,7 @@ export default function SetupVaultPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error configurando el vault");
+      setServerError(errorMessage(err, "Error configurando el vault"));
     }
   }
 

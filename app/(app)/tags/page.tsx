@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -40,7 +42,7 @@ function TagsInner() {
     try {
       setItems(await listDecryptedTags());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
+      setError(errorMessage(err, "Error"));
     }
   }
 
@@ -51,7 +53,7 @@ function TagsInner() {
         if (!cancelled) setItems(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Error");
+        if (!cancelled) setError(errorMessage(err, "Error"));
       });
     return () => {
       cancelled = true;

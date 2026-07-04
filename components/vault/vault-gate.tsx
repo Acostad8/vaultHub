@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -20,7 +22,7 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchMyProfile()
       .then(setProfile)
-      .catch((err) => setLoadError(err instanceof Error ? err.message : "Error"));
+      .catch((err) => setLoadError(errorMessage(err, "Error")));
   }, []);
 
   useEffect(() => {

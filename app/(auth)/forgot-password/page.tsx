@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -31,7 +33,7 @@ export default function ForgotPasswordPage() {
       await requestPasswordReset(values);
       setSent(true);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error al enviar el email");
+      setServerError(errorMessage(err, "Error al enviar el email"));
     }
   }
 

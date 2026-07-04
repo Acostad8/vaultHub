@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -36,7 +38,7 @@ export default function ResetPasswordPage() {
         router.refresh();
       }, 1500);
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error al actualizar el password");
+      setServerError(errorMessage(err, "Error al actualizar el password"));
     }
   }
 

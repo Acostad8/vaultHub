@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ export function GoogleButton({ disabled }: { disabled?: boolean }) {
       await signInWithGoogle();
       // No redirigimos: signInWithOAuth cambia la URL sola.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error de OAuth");
+      setError(errorMessage(err, "Error de OAuth"));
       setLoading(false);
     }
   }

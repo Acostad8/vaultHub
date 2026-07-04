@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -101,7 +103,7 @@ export function PasswordItemForm({ mode, existing }: Props) {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error guardando");
+      setServerError(errorMessage(err, "Error guardando"));
     }
   }
 

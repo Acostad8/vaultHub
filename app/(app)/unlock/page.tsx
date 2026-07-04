@@ -1,5 +1,7 @@
 "use client";
 
+import { errorMessage } from "@/lib/errors";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -49,7 +51,7 @@ export default function UnlockPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Error al desbloquear");
+      setServerError(errorMessage(err, "Error al desbloquear"));
     }
   }
 
