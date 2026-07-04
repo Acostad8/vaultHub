@@ -123,8 +123,20 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.005em;
   }
   html {
     @apply font-sans;
+  }
+  textarea {
+    @apply rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none transition;
+    @apply focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
   }
 }

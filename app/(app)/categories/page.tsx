@@ -1,17 +1,18 @@
 "use client";
 
-import { errorMessage } from "@/lib/errors";
-
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Folder, Pencil, Plus, Trash2, X } from "lucide-react";
 
+import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { VaultGate } from "@/components/vault/vault-gate";
+import { PageHeader } from "@/components/vault/page-header";
 import {
   createCategory,
   listDecryptedCategories,
@@ -81,99 +82,122 @@ function CategoriesInner() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Categorias</h1>
-        <Link href="/" className="text-sm text-zinc-500 underline underline-offset-4">
-          Volver
-        </Link>
-      </header>
+    <div className="mx-auto w-full max-w-2xl px-4 py-8">
+      <PageHeader
+        title="Categorias"
+        description="Organiza tus items en carpetas. El nombre se cifra localmente."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nueva categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2 sm:flex-row" noValidate>
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="name" className="sr-only">
-                Nombre
-              </Label>
-              <Input id="name" placeholder="Nombre" {...register("name")} />
-              {errors.name ? (
-                <p className="text-xs text-red-600">{errors.name.message}</p>
-              ) : null}
-            </div>
-            <div className="w-full sm:w-40 space-y-1">
-              <Label htmlFor="color" className="sr-only">
-                Color
-              </Label>
-              <Input id="color" placeholder="#7c3aed" {...register("color")} />
-              {errors.color ? (
-                <p className="text-xs text-red-600">{errors.color.message}</p>
-              ) : null}
-            </div>
-            <Button type="submit" disabled={isSubmitting}>
+      <Card className="mb-4 p-5">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px_auto]"
+          noValidate
+        >
+          <div className="space-y-1">
+            <Label htmlFor="name" className="text-xs">
+              Nombre
+            </Label>
+            <InputWithIcon
+              id="name"
+              placeholder="Trabajo, banco, redes…"
+              leftIcon={<Folder className="size-4" />}
+              {...register("name")}
+            />
+            {errors.name ? (
+              <p className="text-xs text-red-600">{errors.name.message}</p>
+            ) : null}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="color" className="text-xs">
+              Color
+            </Label>
+            <Input id="color" placeholder="#7c3aed" {...register("color")} />
+            {errors.color ? (
+              <p className="text-xs text-red-600">{errors.color.message}</p>
+            ) : null}
+          </div>
+          <div className="flex items-end">
+            <Button type="submit" className="w-full gap-1.5 sm:w-auto" disabled={isSubmitting}>
+              <Plus className="size-4" />
               Crear
             </Button>
-          </form>
-        </CardContent>
+          </div>
+        </form>
       </Card>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {!items ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
       {items && items.length === 0 ? (
-        <p className="text-sm text-zinc-500">No hay categorias todavia.</p>
+        <Card className="border-dashed p-10 text-center text-sm text-zinc-500">
+          Sin categorias todavia.
+        </Card>
       ) : null}
 
-      {items?.map((cat) => (
-        <Card key={cat.id}>
-          <CardContent className="flex items-center gap-3 py-3">
-            {cat.color ? (
-              <span className="h-4 w-4 rounded" style={{ backgroundColor: cat.color }} />
-            ) : null}
-            {editingId === cat.id ? (
-              <>
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1"
-                />
-                <Button size="sm" onClick={() => handleRename(cat.id)}>
-                  Guardar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingId(null);
-                    setEditName("");
-                  }}
+      <ul className="space-y-2">
+        {items?.map((cat) => (
+          <li key={cat.id}>
+            <Card className="p-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: cat.color ?? "#e4e4e7" }}
                 >
-                  Cancelar
-                </Button>
-              </>
-            ) : (
-              <>
-                <span className="flex-1">{cat.name}</span>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingId(cat.id);
-                    setEditName(cat.name);
-                  }}
-                >
-                  Renombrar
-                </Button>
-                <Button size="xs" variant="destructive" onClick={() => handleDelete(cat.id)}>
-                  Borrar
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+                  <Folder className="size-4 text-white/95" />
+                </div>
+
+                {editingId === cat.id ? (
+                  <>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={() => handleRename(cat.id)} className="gap-1">
+                      <Check className="size-3.5" />
+                      Guardar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingId(null);
+                        setEditName("");
+                      }}
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm font-medium">{cat.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(cat.id);
+                        setEditName(cat.name);
+                      }}
+                      className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                      title="Renombrar"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(cat.id)}
+                      className="rounded-md p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                      title="Borrar"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </Card>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

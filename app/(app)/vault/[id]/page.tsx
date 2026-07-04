@@ -1,12 +1,12 @@
 "use client";
 
-import { errorMessage } from "@/lib/errors";
-
-import Link from "next/link";
 import { useEffect, useState, use } from "react";
+import { History } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { errorMessage } from "@/lib/errors";
+import { Card } from "@/components/ui/card";
 import { VaultGate } from "@/components/vault/vault-gate";
+import { PageHeader } from "@/components/vault/page-header";
 import { PasswordItemForm } from "@/components/vault/password-item-form";
 import {
   ApiKeyItemForm,
@@ -97,45 +97,53 @@ export default function EditVaultItemPage({ params }: { params: Promise<{ id: st
   }, [id, isUnlocked]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 space-y-4">
+    <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <VaultGate>
-        <Card>
-          <CardHeader>
-            <CardTitle>Editar item</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-            {!item && !error ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
-            {item ? <EditForm item={item} /> : null}
-            <p className="mt-4 text-center text-xs">
-              <Link href="/" className="text-zinc-500 underline underline-offset-4">
-                Volver
-              </Link>
-            </p>
-          </CardContent>
+        <PageHeader title="Editar item" description="Los cambios se cifran antes de guardarse." />
+
+        <Card className="p-5">
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {!item && !error ? (
+            <p className="text-sm text-zinc-500">Cargando…</p>
+          ) : null}
+          {item ? <EditForm item={item} /> : null}
         </Card>
 
         {history && history.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Historial de cambios</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <Card className="mt-4 p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                <History className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold">Historial de cambios</h3>
+                <p className="text-xs text-zinc-500">
+                  {history.length} version{history.length === 1 ? "" : "es"} anterior
+                  {history.length === 1 ? "" : "es"}.
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-2">
               {history.map((h) => {
                 const p = h.payload as { password?: string; name?: string };
                 return (
-                  <div key={h.id} className="rounded border border-zinc-200 p-2 text-xs dark:border-zinc-800">
-                    <div className="text-zinc-500">
+                  <li
+                    key={h.id}
+                    className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-900/50"
+                  >
+                    <div className="mb-1 text-zinc-500">
                       {new Date(h.archived_at).toLocaleString()}
                     </div>
                     {p.name ? <div>Nombre: {p.name}</div> : null}
                     {p.password ? (
-                      <div className="font-mono">Password: {p.password}</div>
+                      <div className="font-mono text-zinc-600 dark:text-zinc-400">
+                        Password: {p.password}
+                      </div>
                     ) : null}
-                  </div>
+                  </li>
                 );
               })}
-            </CardContent>
+            </ul>
           </Card>
         ) : null}
       </VaultGate>

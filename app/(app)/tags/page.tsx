@@ -1,17 +1,18 @@
 "use client";
 
-import { errorMessage } from "@/lib/errors";
-
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Plus, Tag as TagIcon, X } from "lucide-react";
 
+import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { VaultGate } from "@/components/vault/vault-gate";
+import { PageHeader } from "@/components/vault/page-header";
 import {
   createTag,
   listDecryptedTags,
@@ -81,95 +82,111 @@ function TagsInner() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Tags</h1>
-        <Link href="/" className="text-sm text-zinc-500 underline underline-offset-4">
-          Volver
-        </Link>
-      </header>
+    <div className="mx-auto w-full max-w-2xl px-4 py-8">
+      <PageHeader
+        title="Tags"
+        description="Etiquetas transversales para clasificar items. Nombre cifrado."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Nuevo tag</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2 sm:flex-row" noValidate>
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="name" className="sr-only">
-                Nombre
-              </Label>
-              <Input id="name" placeholder="Nombre" {...register("name")} />
-              {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
-            </div>
-            <div className="w-full sm:w-40 space-y-1">
-              <Label htmlFor="color" className="sr-only">
-                Color
-              </Label>
-              <Input id="color" placeholder="#7c3aed" {...register("color")} />
-              {errors.color ? (
-                <p className="text-xs text-red-600">{errors.color.message}</p>
-              ) : null}
-            </div>
-            <Button type="submit" disabled={isSubmitting}>
+      <Card className="mb-4 p-5">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px_auto]"
+          noValidate
+        >
+          <div className="space-y-1">
+            <Label htmlFor="name" className="text-xs">
+              Nombre
+            </Label>
+            <InputWithIcon
+              id="name"
+              placeholder="importante, personal…"
+              leftIcon={<TagIcon className="size-4" />}
+              {...register("name")}
+            />
+            {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="color" className="text-xs">
+              Color
+            </Label>
+            <Input id="color" placeholder="#7c3aed" {...register("color")} />
+            {errors.color ? (
+              <p className="text-xs text-red-600">{errors.color.message}</p>
+            ) : null}
+          </div>
+          <div className="flex items-end">
+            <Button type="submit" className="w-full gap-1.5 sm:w-auto" disabled={isSubmitting}>
+              <Plus className="size-4" />
               Crear
             </Button>
-          </form>
-        </CardContent>
+          </div>
+        </form>
       </Card>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {!items ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
       {items && items.length === 0 ? (
-        <p className="text-sm text-zinc-500">No hay tags todavia.</p>
+        <Card className="border-dashed p-10 text-center text-sm text-zinc-500">
+          Sin tags todavia.
+        </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
         {items?.map((tag) => (
           <div
             key={tag.id}
-            className="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1 text-sm dark:border-zinc-800"
+            className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-800 dark:bg-zinc-900"
           >
-            {tag.color ? (
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: tag.color }} />
-            ) : null}
+            <span
+              className="size-2.5 rounded-full"
+              style={{ backgroundColor: tag.color ?? "#a1a1aa" }}
+            />
             {editingId === tag.id ? (
               <>
                 <Input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="h-6 w-32 px-1 text-xs"
+                  className="h-6 w-36 px-1.5 text-xs"
+                  autoFocus
                 />
                 <button
-                  className="text-xs text-blue-600 underline"
+                  className="rounded p-0.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                   onClick={() => handleRename(tag.id)}
+                  aria-label="Guardar"
                 >
-                  ok
+                  <Check className="size-3.5" />
                 </button>
                 <button
-                  className="text-xs text-zinc-500"
+                  className="rounded p-0.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   onClick={() => {
                     setEditingId(null);
                     setEditName("");
                   }}
+                  aria-label="Cancelar"
                 >
-                  x
+                  <X className="size-3.5" />
                 </button>
               </>
             ) : (
               <>
-                <span>{tag.name}</span>
+                <span className="font-medium">{tag.name}</span>
                 <button
-                  className="text-xs text-zinc-500"
+                  className="rounded p-0.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   onClick={() => {
                     setEditingId(tag.id);
                     setEditName(tag.name);
                   }}
+                  aria-label="Renombrar"
                 >
-                  ✎
+                  <Pencil className="size-3" />
                 </button>
-                <button className="text-xs text-red-600" onClick={() => handleDelete(tag.id)}>
-                  ×
+                <button
+                  className="rounded p-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+                  onClick={() => handleDelete(tag.id)}
+                  aria-label="Borrar"
+                >
+                  <X className="size-3.5" />
                 </button>
               </>
             )}
@@ -177,6 +194,25 @@ function TagsInner() {
         ))}
       </div>
     </div>
+  );
+}
+
+// Icono Pencil pequeño reutilizado.
+function Pencil({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
   );
 }
 
