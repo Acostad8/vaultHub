@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
+  Copy,
   CreditCard,
+  Eye,
+  EyeOff,
   FileText,
   IdCard,
   Inbox,
@@ -88,6 +92,8 @@ export function VaultList() {
   const [tags, setTags] = useState<DecryptedTag[]>([]);
   const [itemTagsMap, setItemTagsMap] = useState<Map<string, string[]>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>({
     query: "",
     type: "all",
@@ -145,6 +151,16 @@ export function VaultList() {
     for (const c of categories) m.set(c.id, c.name);
     return m;
   }, [categories]);
+
+  function toggleReveal(id: string) {
+    setRevealedId((cur) => (cur === id ? null : id));
+  }
+
+  async function handleCopy(id: string, password: string) {
+    await navigator.clipboard.writeText(password);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
+  }
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!items || !filtered) {
@@ -256,10 +272,18 @@ export function VaultList() {
 
       <ul className="space-y-2">
         {filtered.map((item) => {
-          const p = item.payload as { name?: string; username?: string; url?: string };
+          const p = item.payload as {
+            name?: string;
+            username?: string;
+            url?: string;
+            password?: string;
+          };
           const cat = item.category_id ? categoryNameById.get(item.category_id) : null;
           const meta = TYPE_META[item.item_type];
           const Icon = meta.icon;
+          const revealed = revealedId === item.id;
+          const copied = copiedId === item.id;
+          const hasPassword = typeof p.password === "string" && p.password.length > 0;
           return (
             <li key={item.id}>
               <Card className="group transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
@@ -286,6 +310,32 @@ export function VaultList() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
+                    {hasPassword ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toggleReveal(item.id)}
+                          className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          aria-label={revealed ? "Ocultar password" : "Ver password"}
+                          title={revealed ? "Ocultar password" : "Ver password"}
+                        >
+                          {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(item.id, p.password!)}
+                          className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          aria-label={copied ? "Copiado" : "Copiar password"}
+                          title={copied ? "Copiado" : "Copiar password"}
+                        >
+                          {copied ? (
+                            <Check className="size-4 text-emerald-500" />
+                          ) : (
+                            <Copy className="size-4" />
+                          )}
+                        </button>
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => handleToggleFav(item.id, !item.is_favorite)}
@@ -316,6 +366,16 @@ export function VaultList() {
                     </button>
                   </div>
                 </div>
+                {revealed && hasPassword ? (
+                  <div className="border-t border-zinc-200 bg-zinc-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <p className="mb-1 text-[10px] uppercase tracking-wider text-zinc-500">
+                      Password
+                    </p>
+                    <p className="font-mono text-sm break-all text-zinc-900 dark:text-zinc-100">
+                      {p.password}
+                    </p>
+                  </div>
+                ) : null}
               </Card>
             </li>
           );
