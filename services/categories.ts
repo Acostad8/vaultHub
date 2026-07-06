@@ -37,15 +37,16 @@ async function decrypt(key: CryptoKey, row: CategoryRow): Promise<DecryptedCateg
 export async function listDecryptedCategories(): Promise<DecryptedCategory[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listCategories();
-  const out: DecryptedCategory[] = [];
-  for (const row of rows) {
-    try {
-      out.push(await decrypt(key, row));
-    } catch {
-      // skip corrupted
-    }
-  }
-  return out;
+  const decrypted = await Promise.all(
+    rows.map(async (row) => {
+      try {
+        return await decrypt(key, row);
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return decrypted.filter((it): it is DecryptedCategory => it !== null);
 }
 
 export async function createCategory(params: {

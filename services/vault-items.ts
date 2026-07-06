@@ -48,23 +48,15 @@ async function decryptRow(key: CryptoKey, row: VaultItemRow): Promise<VaultItemD
 export async function listDecryptedItems(): Promise<VaultItemDecrypted[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listActiveVaultItems();
-  const out: VaultItemDecrypted[] = [];
-  for (const row of rows) {
-    const dec = await decryptRow(key, row);
-    if (dec) out.push(dec);
-  }
-  return out;
+  const decrypted = await Promise.all(rows.map((row) => decryptRow(key, row)));
+  return decrypted.filter((it): it is VaultItemDecrypted => it !== null);
 }
 
 export async function listDecryptedTrash(): Promise<VaultItemDecrypted[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listTrashedVaultItems();
-  const out: VaultItemDecrypted[] = [];
-  for (const row of rows) {
-    const dec = await decryptRow(key, row);
-    if (dec) out.push(dec);
-  }
-  return out;
+  const decrypted = await Promise.all(rows.map((row) => decryptRow(key, row)));
+  return decrypted.filter((it): it is VaultItemDecrypted => it !== null);
 }
 
 export async function getDecryptedItem(id: string): Promise<VaultItemDecrypted | null> {
@@ -153,19 +145,20 @@ export interface DecryptedHistoryEntry {
 export async function listDecryptedPasswordHistory(vaultItemId: string): Promise<DecryptedHistoryEntry[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listPasswordHistory(vaultItemId);
-  const out: DecryptedHistoryEntry[] = [];
-  for (const row of rows) {
-    try {
-      const payload = await decryptPayload<VaultItemPayload>(key, {
-        ciphertext: row.payload_ciphertext,
-        iv: row.payload_iv,
-      });
-      out.push({ id: row.id, archived_at: row.archived_at, payload });
-    } catch {
-      // skip
-    }
-  }
-  return out;
+  const decrypted = await Promise.all(
+    rows.map(async (row): Promise<DecryptedHistoryEntry | null> => {
+      try {
+        const payload = await decryptPayload<VaultItemPayload>(key, {
+          ciphertext: row.payload_ciphertext,
+          iv: row.payload_iv,
+        });
+        return { id: row.id, archived_at: row.archived_at, payload };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return decrypted.filter((it): it is DecryptedHistoryEntry => it !== null);
 }
 
 export type { PasswordHistoryRow };

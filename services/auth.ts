@@ -13,6 +13,7 @@ import type {
   ResetPasswordInput,
 } from "@/validators/auth";
 import { logAudit } from "@/services/audit";
+import { invalidateProfileCache } from "@/store/profile";
 
 function getSiteOrigin(): string {
   if (typeof window === "undefined") {
@@ -81,4 +82,5 @@ export async function signOut(): Promise<void> {
   await logAudit("logout");
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  invalidateProfileCache();
 }

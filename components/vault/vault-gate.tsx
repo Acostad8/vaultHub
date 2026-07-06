@@ -5,7 +5,7 @@ import { errorMessage } from "@/lib/errors";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { fetchMyProfile, type ProfileRow } from "@/repositories/profile";
+import { useProfileCache } from "@/store/profile";
 import { useVaultLock } from "@/store/vault-lock";
 import { useAutoLock } from "@/hooks/use-auto-lock";
 
@@ -14,16 +14,16 @@ import { useAutoLock } from "@/hooks/use-auto-lock";
 export function VaultGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isUnlocked = useVaultLock((s) => s.status.state === "unlocked");
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const profile = useProfileCache((s) => s.profile);
+  const loadProfile = useProfileCache((s) => s.load);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useAutoLock({ autoLockMinutes: profile?.auto_lock_minutes ?? 5 });
 
   useEffect(() => {
-    fetchMyProfile()
-      .then(setProfile)
-      .catch((err) => setLoadError(errorMessage(err, "Error")));
-  }, []);
+    if (profile) return;
+    loadProfile().catch((err) => setLoadError(errorMessage(err, "Error")));
+  }, [profile, loadProfile]);
 
   useEffect(() => {
     if (!profile) return;

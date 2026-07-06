@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
-import { fetchMyProfile } from "@/repositories/profile";
+import { useProfileCache } from "@/store/profile";
 import { setupVault } from "@/services/vault";
 import { setupVaultSchema, type SetupVaultInput } from "@/validators/vault";
 import { evaluatePasswordStrength } from "@/lib/password";
@@ -30,7 +30,9 @@ export default function SetupVaultPage() {
   const [showPwd, setShowPwd] = useState(false);
 
   useEffect(() => {
-    fetchMyProfile()
+    useProfileCache
+      .getState()
+      .load()
       .then((p) => {
         if (p.vault_initialized_at) router.replace("/unlock");
         else setLoading(false);

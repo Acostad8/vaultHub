@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
-import { fetchMyProfile } from "@/repositories/profile";
+import { useProfileCache } from "@/store/profile";
 import { unlockVault } from "@/services/vault";
 import { unlockVaultSchema, type UnlockVaultInput } from "@/validators/vault";
 import { useVaultLock } from "@/store/vault-lock";
@@ -27,7 +27,9 @@ export default function UnlockPage() {
       router.replace("/");
       return;
     }
-    fetchMyProfile()
+    useProfileCache
+      .getState()
+      .load()
       .then((p) => {
         if (!p.vault_initialized_at) router.replace("/setup-vault");
         else setLoading(false);

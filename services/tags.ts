@@ -28,15 +28,16 @@ async function decrypt(key: CryptoKey, row: TagRow): Promise<DecryptedTag> {
 export async function listDecryptedTags(): Promise<DecryptedTag[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listTags();
-  const out: DecryptedTag[] = [];
-  for (const row of rows) {
-    try {
-      out.push(await decrypt(key, row));
-    } catch {
-      // skip
-    }
-  }
-  return out;
+  const decrypted = await Promise.all(
+    rows.map(async (row) => {
+      try {
+        return await decrypt(key, row);
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return decrypted.filter((it): it is DecryptedTag => it !== null);
 }
 
 export async function createTag(params: { name: string; color?: string | null }): Promise<DecryptedTag> {

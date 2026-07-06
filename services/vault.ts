@@ -10,7 +10,16 @@ import {
 } from "@/lib/crypto";
 import { fetchMyProfile, saveVaultVerifier, touchLastUnlock, type ProfileRow } from "@/repositories/profile";
 import { useVaultLock } from "@/store/vault-lock";
+import { useProfileCache } from "@/store/profile";
 import { logAudit } from "@/services/audit";
+
+function refreshProfileCache(): void {
+  const cache = useProfileCache.getState();
+  cache.invalidate();
+  cache.load().catch(() => {
+    // No fatal — el proximo consumer volvera a intentarlo.
+  });
+}
 
 // Plaintext arbitrario pero constante para el verifier. No es secreto —
 // solo se usa para probar que la master password derivada correctamente.
@@ -40,6 +49,7 @@ export async function setupVault(masterPassword: string): Promise<void> {
   });
 
   useVaultLock.getState().unlock(key);
+  refreshProfileCache();
   void logAudit("vault_unlock", { first_time: true });
 }
 
@@ -77,6 +87,7 @@ export async function unlockVault(masterPassword: string): Promise<void> {
   await touchLastUnlock().catch(() => {
     // No fatal: es solo un timestamp.
   });
+  refreshProfileCache();
   void logAudit("vault_unlock");
 }
 
