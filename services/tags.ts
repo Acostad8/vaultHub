@@ -2,6 +2,7 @@ import { decryptPayload, encryptPayload } from "@/lib/crypto";
 import { deleteTag, insertTag, listTags, updateTag, type TagRow } from "@/repositories/tags";
 import { setItemTags, listItemTags } from "@/repositories/item-tags";
 import { useVaultLock } from "@/store/vault-lock";
+import { useVaultCache } from "@/store/vault-cache";
 
 export interface DecryptedTag {
   id: string;
@@ -48,6 +49,7 @@ export async function createTag(params: { name: string; color?: string | null })
     name_iv: envelope.iv,
     color: params.color ?? null,
   });
+  useVaultCache.getState().invalidateTags();
   return decrypt(key, row);
 }
 
@@ -59,15 +61,19 @@ export async function renameTag(id: string, name: string): Promise<DecryptedTag>
     name_ciphertext: envelope.ciphertext,
     name_iv: envelope.iv,
   });
+  useVaultCache.getState().invalidateTags();
   return decrypt(key, row);
 }
 
 export async function removeTag(id: string): Promise<void> {
   await deleteTag(id);
+  useVaultCache.getState().invalidateTags();
+  useVaultCache.getState().invalidateItemTags();
 }
 
 export async function assignTagsToItem(vaultItemId: string, tagIds: string[]): Promise<void> {
   await setItemTags(vaultItemId, tagIds);
+  useVaultCache.getState().invalidateItemTags();
 }
 
 /** Map de vaultItemId -> tagIds[]. Util para el listado. */

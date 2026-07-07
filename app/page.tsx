@@ -5,16 +5,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { VaultGate } from "@/components/vault/vault-gate";
 import { VaultList } from "@/components/vault/vault-list";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { UserBadge } from "@/components/vault/user-badge";
 
-export default async function Home() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const initial = (user?.email ?? "?").charAt(0).toUpperCase();
-
+export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Header sticky con glass effect */}
@@ -25,12 +18,7 @@ export default async function Home() {
             <span className="text-base font-semibold tracking-tight">VaultHub</span>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs sm:flex dark:border-zinc-800 dark:bg-zinc-900">
-              <span className="flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
-                {initial}
-              </span>
-              <span className="text-zinc-600 dark:text-zinc-300">{user?.email}</span>
-            </div>
+            <UserBadge />
             <LogoutButton />
           </div>
         </div>

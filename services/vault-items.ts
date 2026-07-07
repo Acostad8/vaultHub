@@ -15,6 +15,7 @@ import {
 } from "@/repositories/vault-items";
 import type { VaultItemDecrypted, VaultItemPayload, VaultItemRow, VaultItemType } from "@/types/vault";
 import { useVaultLock } from "@/store/vault-lock";
+import { useVaultCache } from "@/store/vault-cache";
 import { logAudit } from "@/services/audit";
 
 function decryptedFromRow<T extends VaultItemPayload>(
@@ -85,8 +86,10 @@ export async function createItem(params: {
     payload_iv: envelope.iv,
     is_favorite: params.is_favorite,
   });
+  const dec = decryptedFromRow(row, params.payload);
+  useVaultCache.getState().addItem(dec);
   void logAudit("item_create", { id: row.id, item_type: params.item_type });
-  return decryptedFromRow(row, params.payload);
+  return dec;
 }
 
 export async function editItem(params: {
@@ -113,26 +116,32 @@ export async function editItem(params: {
       ciphertext: row.payload_ciphertext,
       iv: row.payload_iv,
     }));
+  const dec = decryptedFromRow(row, payload);
+  useVaultCache.getState().patchItem(params.id, dec);
   void logAudit("item_update", { id: params.id });
-  return decryptedFromRow(row, payload);
+  return dec;
 }
 
 export async function toggleFavorite(id: string, next: boolean): Promise<void> {
   await updateVaultItem({ id, is_favorite: next });
+  useVaultCache.getState().patchItem(id, { is_favorite: next });
 }
 
 export async function trashItem(id: string): Promise<void> {
   await softDeleteVaultItem(id);
+  useVaultCache.getState().removeItem(id);
   void logAudit("item_delete", { id, kind: "trash" });
 }
 
 export async function restoreItem(id: string): Promise<void> {
   await restoreVaultItem(id);
+  useVaultCache.getState().invalidateItems();
   void logAudit("item_restore", { id });
 }
 
 export async function purgeItem(id: string): Promise<void> {
   await purgeVaultItem(id);
+  useVaultCache.getState().removeItem(id);
   void logAudit("item_delete", { id, kind: "purge" });
 }
 

@@ -7,6 +7,7 @@ import {
   type CategoryRow,
 } from "@/repositories/categories";
 import { useVaultLock } from "@/store/vault-lock";
+import { useVaultCache } from "@/store/vault-cache";
 
 export interface DecryptedCategory {
   id: string;
@@ -62,6 +63,7 @@ export async function createCategory(params: {
     icon: params.icon ?? null,
     color: params.color ?? null,
   });
+  useVaultCache.getState().invalidateCategories();
   return decrypt(key, row);
 }
 
@@ -73,9 +75,11 @@ export async function renameCategory(id: string, name: string): Promise<Decrypte
     name_ciphertext: envelope.ciphertext,
     name_iv: envelope.iv,
   });
+  useVaultCache.getState().invalidateCategories();
   return decrypt(key, row);
 }
 
 export async function removeCategory(id: string): Promise<void> {
   await deleteCategory(id);
+  useVaultCache.getState().invalidateCategories();
 }

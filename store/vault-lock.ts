@@ -7,6 +7,8 @@
 
 import { create } from "zustand";
 
+import { clearVaultCache } from "@/store/vault-cache";
+
 export type VaultStatus =
   | { state: "locked" }
   | { state: "unlocked"; key: CryptoKey; unlockedAt: number; lastActivity: number };
@@ -45,6 +47,8 @@ export const useVaultLock = create<VaultLockStore>((set, get) => ({
     // navegador; no hay `zeroize` publico, pero al menos JS no puede
     // volver a alcanzarlas.
     set({ status: { state: "locked" } });
+    // Datos descifrados cacheados no deben sobrevivir al lock.
+    clearVaultCache();
   },
 
   touch() {
@@ -69,6 +73,7 @@ export const useVaultLock = create<VaultLockStore>((set, get) => ({
     const limitMs = autoLockMinutes * 60_000;
     if (elapsedMs >= limitMs) {
       set({ status: { state: "locked" } });
+      clearVaultCache();
       return true;
     }
     return false;

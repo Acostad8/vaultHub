@@ -14,6 +14,7 @@ import type {
 } from "@/validators/auth";
 import { logAudit } from "@/services/audit";
 import { invalidateProfileCache } from "@/store/profile";
+import { clearVaultCache } from "@/store/vault-cache";
 
 function getSiteOrigin(): string {
   if (typeof window === "undefined") {
@@ -83,4 +84,5 @@ export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   invalidateProfileCache();
+  clearVaultCache();
 }

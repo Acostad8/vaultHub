@@ -1,16 +1,9 @@
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-// Layout del area autenticada. Solo verifica sesion; el gate por vault
-// (initialized + unlocked) se hace en las paginas concretas / client.
-export default async function AppLayout({ children }: { children: ReactNode }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+// Layout del area autenticada. La verificacion de sesion la hace el proxy
+// (lib/supabase/middleware.ts) via getClaims — evita un roundtrip HTTP
+// server-side por navegacion. El gate por vault (initialized + unlocked)
+// se hace en las paginas concretas / client.
+export default function AppLayout({ children }: { children: ReactNode }) {
   return <div className="flex min-h-screen flex-col">{children}</div>;
 }

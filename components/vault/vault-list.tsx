@@ -33,6 +33,7 @@ import {
 import { listDecryptedCategories, type DecryptedCategory } from "@/services/categories";
 import { fetchItemTagsMap, listDecryptedTags, type DecryptedTag } from "@/services/tags";
 import { analyzeVault } from "@/services/vault-analysis";
+import { useVaultCache } from "@/store/vault-cache";
 import type { VaultItemDecrypted, VaultItemType } from "@/types/vault";
 import { DashboardSummary } from "./dashboard-summary";
 
@@ -87,10 +88,22 @@ function matchesFilters(
 }
 
 export function VaultList() {
-  const [items, setItems] = useState<VaultItemDecrypted[] | null>(null);
-  const [categories, setCategories] = useState<DecryptedCategory[]>([]);
-  const [tags, setTags] = useState<DecryptedTag[]>([]);
-  const [itemTagsMap, setItemTagsMap] = useState<Map<string, string[]>>(new Map());
+  const cachedItems = useVaultCache((s) => s.items);
+  const cachedCategories = useVaultCache((s) => s.categories);
+  const cachedTags = useVaultCache((s) => s.tags);
+  const cachedItemTagsMap = useVaultCache((s) => s.itemTagsMap);
+
+  const items = cachedItems;
+  const categories = useMemo<DecryptedCategory[]>(
+    () => cachedCategories ?? [],
+    [cachedCategories],
+  );
+  const tags = useMemo<DecryptedTag[]>(() => cachedTags ?? [], [cachedTags]);
+  const itemTagsMap = useMemo<Map<string, string[]>>(
+    () => cachedItemTagsMap ?? new Map(),
+    [cachedItemTagsMap],
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -104,19 +117,26 @@ export function VaultList() {
 
   useEffect(() => {
     let cancelled = false;
+    const cache = useVaultCache.getState();
+    const needItems = cache.items === null;
+    const needCats = cache.categories === null;
+    const needTags = cache.tags === null;
+    const needTagMap = cache.itemTagsMap === null;
+    if (!needItems && !needCats && !needTags && !needTagMap) return;
     (async () => {
       try {
         const [decrypted, cats, tgs, tagMap] = await Promise.all([
-          listDecryptedItems(),
-          listDecryptedCategories(),
-          listDecryptedTags(),
-          fetchItemTagsMap(),
+          needItems ? listDecryptedItems() : Promise.resolve(cache.items!),
+          needCats ? listDecryptedCategories() : Promise.resolve(cache.categories!),
+          needTags ? listDecryptedTags() : Promise.resolve(cache.tags!),
+          needTagMap ? fetchItemTagsMap() : Promise.resolve(cache.itemTagsMap!),
         ]);
         if (cancelled) return;
-        setItems(decrypted);
-        setCategories(cats);
-        setTags(tgs);
-        setItemTagsMap(tagMap);
+        const store = useVaultCache.getState();
+        if (needItems) store.setItems(decrypted);
+        if (needCats) store.setCategories(cats);
+        if (needTags) store.setTags(tgs);
+        if (needTagMap) store.setItemTagsMap(tagMap);
       } catch (err) {
         if (!cancelled) setError(errorMessage(err, "Error"));
       }
@@ -136,14 +156,12 @@ export function VaultList() {
   async function handleDelete(id: string) {
     if (!confirm("Enviar a la papelera?")) return;
     await trashItem(id);
-    setItems((prev) => prev?.filter((it) => it.id !== id) ?? prev);
+    useVaultCache.getState().removeItem(id);
   }
 
   async function handleToggleFav(id: string, next: boolean) {
     await toggleFavorite(id, next);
-    setItems((prev) =>
-      prev?.map((it) => (it.id === id ? { ...it, is_favorite: next } : it)) ?? prev,
-    );
+    useVaultCache.getState().patchItem(id, { is_favorite: next });
   }
 
   const categoryNameById = useMemo(() => {

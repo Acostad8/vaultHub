@@ -9,10 +9,16 @@ interface AutoLockOptions {
   /** Minutos de inactividad tras los que se limpia la master key. */
   autoLockMinutes: number;
   /**
-   * Si true, tambien bloquea al ocultarse la pestaña (visibilitychange).
-   * Recomendado true para escenarios sensibles.
+   * Si true, bloquea tras que la pestaña esta oculta por
+   * `hiddenGraceSeconds` seguidos. Recomendado true para escenarios sensibles.
    */
   lockOnHidden?: boolean;
+  /**
+   * Segundos de tolerancia al ocultarse la pestaña antes de bloquear.
+   * Si el usuario vuelve antes de que expire, se cancela el bloqueo.
+   * Regla CLAUDE.md dice "cambio de pestaña prolongado" — no instantaneo.
+   */
+  hiddenGraceSeconds?: number;
 }
 
 /**
@@ -21,10 +27,14 @@ interface AutoLockOptions {
  *
  * - Escucha eventos de actividad del usuario y refresca lastActivity.
  * - Poll cada 15 s revisa timeout de inactividad y llama lock() si vencio.
- * - Opcionalmente bloquea al esconder la pestaña.
+ * - Opcionalmente bloquea al esconder la pestaña (con grace period).
  * - Siempre bloquea antes de descargar la pagina (defensa en profundidad).
  */
-export function useAutoLock({ autoLockMinutes, lockOnHidden = true }: AutoLockOptions): void {
+export function useAutoLock({
+  autoLockMinutes,
+  lockOnHidden = true,
+  hiddenGraceSeconds = 30,
+}: AutoLockOptions): void {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -44,11 +54,28 @@ export function useAutoLock({ autoLockMinutes, lockOnHidden = true }: AutoLockOp
       if (wasLocked) void logAudit("vault_lock", { reason: "inactivity" });
     }, pollMs);
 
-    // ---- Pestana oculta ----
+    // ---- Pestana oculta (con grace period) ----
+    let hiddenTimerId: number | null = null;
+    const clearHiddenTimer = () => {
+      if (hiddenTimerId !== null) {
+        window.clearTimeout(hiddenTimerId);
+        hiddenTimerId = null;
+      }
+    };
     const onVisibility = () => {
-      if (lockOnHidden && document.visibilityState === "hidden") {
-        lock();
-        void logAudit("vault_lock", { reason: "tab_hidden" });
+      if (!lockOnHidden) return;
+      if (document.visibilityState === "hidden") {
+        clearHiddenTimer();
+        hiddenTimerId = window.setTimeout(() => {
+          hiddenTimerId = null;
+          if (document.visibilityState === "hidden") {
+            lock();
+            void logAudit("vault_lock", { reason: "tab_hidden" });
+          }
+        }, hiddenGraceSeconds * 1_000);
+      } else {
+        // Volvio antes de expirar -> cancelar bloqueo.
+        clearHiddenTimer();
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
@@ -62,8 +89,9 @@ export function useAutoLock({ autoLockMinutes, lockOnHidden = true }: AutoLockOp
         window.removeEventListener(ev, onActivity);
       }
       window.clearInterval(pollId);
+      clearHiddenTimer();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("beforeunload", onUnload);
     };
-  }, [autoLockMinutes, lockOnHidden]);
+  }, [autoLockMinutes, lockOnHidden, hiddenGraceSeconds]);
 }

@@ -45,10 +45,15 @@ export async function updateSupabaseSession(request: NextRequest) {
     global: { fetch: supabaseFetch },
   });
 
-  // Importante: getUser (no getSession) — verifica la firma del JWT contra Supabase.
+  // getClaims verifica la firma del JWT localmente contra el JWKS de Supabase
+  // (cacheado en memoria del proceso). Cero HTTP roundtrip por request — a
+  // diferencia de getUser(), que golpea /auth/v1/user en cada navegacion.
+  // Si el proyecto usa firmas simetricas (HS256), la libreria hace fallback
+  // seguro al modo remoto. Fuente: docs supabase-js `getClaims()`.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: claimsData,
+  } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ?? null;
 
   const pathname = request.nextUrl.pathname;
 
