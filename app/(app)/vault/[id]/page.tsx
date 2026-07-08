@@ -9,6 +9,7 @@ import { VaultGate } from "@/components/vault/vault-gate";
 import { PageHeader } from "@/components/vault/page-header";
 import { TotpViewer } from "@/components/vault/totp-viewer";
 import { AttachmentsSection } from "@/components/vault/attachments-section";
+import { ShareSection } from "@/components/vault/share-section";
 import { PasswordItemForm } from "@/components/vault/password-item-form";
 import {
   ApiKeyItemForm,
@@ -122,6 +123,7 @@ export default function EditVaultItemPage({ params }: { params: Promise<{ id: st
         </Card>
 
         {item ? <AttachmentsSection itemId={item.id} /> : null}
+        {item ? <ShareSection itemId={item.id} /> : null}
 
         {history && history.length > 0 ? (
           <Card className="mt-4 p-5">

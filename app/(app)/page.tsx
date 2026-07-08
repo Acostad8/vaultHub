@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Archive, Folder, MonitorSmartphone, Plus, ShieldCheck, Sparkles, Tag, Trash2 } from "lucide-react";
+import { Activity, Archive, Folder, MonitorSmartphone, Plus, Share2, ShieldCheck, Sparkles, Tag, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
@@ -90,6 +90,13 @@ export default function Home() {
             >
               <ShieldCheck className="size-4" />
               Seguridad
+            </Link>
+            <Link
+              href="/shared"
+              className={buttonVariants({ variant: "outline", className: "gap-2" })}
+            >
+              <Share2 className="size-4" />
+              Compartidos
             </Link>
             <Link
               href="/trash"

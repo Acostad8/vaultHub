@@ -22,3 +22,13 @@ export type { CipherEnvelope } from "./aes";
 
 export { encryptPayload, decryptPayload } from "./payload";
 export type { SerializablePayload } from "./payload";
+
+export {
+  generateSharingKeyPair,
+  importSharingPublicKey,
+  importSharingPrivateKey,
+  generateShareItemKey,
+  wrapShareKey,
+  unwrapShareKey,
+} from "./rsa";
+export type { SharingKeyPair } from "./rsa";

@@ -9,6 +9,7 @@ import { useProfileCache } from "@/store/profile";
 import { useVaultLock } from "@/store/vault-lock";
 import { useAutoLock } from "@/hooks/use-auto-lock";
 import { heartbeatCurrentDevice } from "@/services/devices";
+import { ensureSharingKeys } from "@/services/sharing";
 import { signOut } from "@/services/auth";
 
 // Gate cliente: decide si mostrar setup, unlock, o el contenido protegido
@@ -40,6 +41,11 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
       .catch(() => {
         // heartbeat es best-effort; sin red no bloquea el vault
       });
+    // Par de claves de compartir: se genera la primera vez (idempotente).
+    // Necesita la master key (cifra la privada), por eso va post-unlock.
+    ensureSharingKeys().catch(() => {
+      // best-effort: sin esto solo falla "compartir", no el vault
+    });
   }, [isUnlocked, router]);
 
   useEffect(() => {
