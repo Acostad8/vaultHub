@@ -484,3 +484,53 @@ Sobrescribió el README default de create-next-app con un README real del proyec
 Los items restantes de Fase 8 (dark mode, a11y, E2E, diagramas de arquitectura y ERD, manual de deploy en Vercel) están pendientes — la mayoría requieren UI existente para tener sentido, o el resto del sistema funcionando.
 
 ---
+
+## Fase 7 — Funciones avanzadas (CIERRE) ✅
+
+**Fecha:** 2026-07-08
+
+### Qué se implementó
+
+**Sesiones activas + dispositivos confiables (`/devices`):**
+- Cada browser se identifica con UUID aleatorio en localStorage (metadata operativa, NO dato sensible — las reglas prohíben master key/datos descifrados, no identificadores).
+- `heartbeatCurrentDevice()` en `VaultGate` post-unlock: registra/refresca `last_seen_at`; si la fila fue borrada remotamente → signOut local (cierre remoto efectivo).
+- "Cerrar otras sesiones" = `supabase.auth.signOut({ scope: "others" })` — revocación real de refresh tokens, nativa, sin service key.
+- Trust de dispositivo con expiración a 30 días (default conservador).
+
+**Archivos adjuntos cifrados (migración `20260708000001_attachments`):**
+- Tabla `attachments` (RLS own-only, sin UPDATE — inmutables) + bucket privado ya existente.
+- Blob Y nombre original cifrados con AES-256-GCM + master key client-side. Server solo ve `.enc` opacos. Rollback de metadata si falla el upload del blob.
+- UI en `/vault/[id]`: subir, descargar (descifra en memoria), borrar. Max 20 MB (enforced también server-side por el bucket).
+
+**2FA de cuenta (`/security` + `/mfa`):**
+- Supabase MFA TOTP: enroll con QR + secreto manual, challenge post-login.
+- Dispositivos confiables omiten el prompt (skip app-level: sesión queda AAL1). Ante error al chequear trust → se pide 2FA (fallback conservador).
+- Recovery codes NO: Supabase no los provee nativo. Documentado en plan.md.
+
+**Compartir credenciales E2E (migraciones `20260708000002/3`):**
+- Par RSA-OAEP 3072/SHA-256 por usuario (Web Crypto nativa, `lib/crypto/rsa.ts`): pública en claro en `profiles`, privada cifrada con la master key. Se genera idempotente tras unlock (`ensureSharingKeys` en VaultGate).
+- Compartir = snapshot del payload cifrado con AES-256 efímera K + K envuelta (wrapKey) con la pública del destinatario. Server nunca ve nada descifrable.
+- RPCs SECURITY DEFINER: `get_sharing_recipient` (solo id + pública por email), `list_received_shares` / `list_given_shares` (joins con email, profiles cerrado por RLS).
+- UI: sección Compartir en `/vault/[id]` (emitir/revocar, expiración 1/7/30 días o nunca), página `/shared` (recibidos, descifrado on-demand).
+- 4 tests nuevos del flujo asimétrico (`rsa.test.ts`) — roundtrip completo, master key incorrecta, privada ajena, OAEP aleatorizado.
+
+### Decisiones técnicas y por qué
+
+- **Share = snapshot, solo lectura.** El ciphertext de un item usa la master key del owner; el destinatario no puede descifrarlo ni escribirlo. Propagar ediciones requeriría claves por-item en todo el vault (refactor masivo). El enum `share_permission` conserva 'write' reservado. Documentado en la migración y el service.
+- **RSA-OAEP en vez de ECDH:** wrap directo sin acuerdo de claves; más simple de razonar para N destinatarios independientes. 3072 bits = margen conservador; la operación RSA es poco frecuente (solo share/accept).
+- **Listado de sesiones de Supabase Auth no es posible client-side** (requiere Admin API + service key, prohibida). El modelo de dispositivos app-level + signOut(others) cubre el caso de uso real.
+
+### Pendiente / dudas
+
+- Restaurar versión del historial, rotación de password_history, drag&drop categorías (arrastrados de Fase 5).
+- Google OAuth sigue esperando configuración manual (DECISIONS_NEEDED #2).
+- El flujo OAuth (Google) no pasa por el check MFA del login form — cuando se habilite el provider, mover el check a `/auth/callback` o a un layout client.
+
+### Verificación
+
+- ✅ `supabase db push` — migraciones 16/17/18 aplicadas limpias.
+- ✅ `npx vitest run` — 94/94 tests (85 previos + 4 RSA + 5 de sesiones anteriores).
+- ✅ `npm run lint` — 0 errores (2 warnings React Compiler preexistentes).
+- ✅ `npm run build` — 23 rutas OK, incluidas `/devices`, `/security`, `/mfa`, `/shared`.
+
+---

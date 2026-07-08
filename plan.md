@@ -54,14 +54,14 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Generador de contraseñas configurable (longitud, símbolos, pronunciables, excluir ambiguos)
 
 ## Fase 7 — Funciones avanzadas
-- [x] TOTP viewer para items tipo `totp` (RFC 6238, countdown). 2FA de cuenta (QR + recovery codes via Supabase MFA) pendiente.
+- [x] TOTP viewer para items tipo `totp` (RFC 6238, countdown). 2FA de cuenta: TOTP via Supabase MFA en `/security` + challenge en `/mfa` (recovery codes no — Supabase no los provee nativo).
 - [x] Historial de cambios por credencial (cifrado) — trigger `snapshot_vault_item_history` + UI en `/vault/[id]`
 - [x] Auditoría (login, logout, desbloqueo, exportación, cambios) — página `/audit`
-- [ ] Sesiones activas y cierre remoto (schema `trusted_devices` listo; UI pendiente)
-- [ ] Dispositivos confiables (idem)
-- [ ] Compartir credenciales con permisos (lectura/edición) y expiración — schema listo, requiere par asimétrico por usuario (ver `DECISIONS_NEEDED`)
-- [x] Exportar/importar backup en JSON cifrado — página `/backup`
-- [ ] Archivos adjuntos cifrados (PDF, TXT, DOCX, JSON, CSV) — bucket + policies listos; UI pendiente
+- [x] Sesiones activas y cierre remoto — página `/devices`, heartbeat + signOut(scope: others)
+- [x] Dispositivos confiables — trust 30 días, omiten prompt 2FA
+- [x] Compartir credenciales con expiración — RSA-OAEP 3072 por usuario, snapshot cifrado E2E. Solo lectura ('write' reservado — snapshot no propaga ediciones)
+- [x] Exportar/importar backup en JSON cifrado — página `/backup` (+ vista previa descifrada en memoria)
+- [x] Archivos adjuntos cifrados — tabla `attachments` + bucket, blob y nombre cifrados client-side, 20 MB max
 
 ## Fase 8 — Pulido, pruebas y documentación
 - [ ] Modo claro/oscuro, responsive, skeletons, toasts, confirmaciones
