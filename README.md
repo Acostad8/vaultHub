@@ -84,18 +84,32 @@ npm run dev
 | `npm run test:watch` | Vitest en modo watch. |
 | `npm run test:coverage` | Vitest con coverage v8. |
 
+## Funcionalidades
+
+- **Vault cifrado E2E** — 7 tipos de item (password, nota, API key, SSH, tarjeta, identidad, TOTP), categorías y tags cifrados, favoritos, papelera con restaurar/purgar, búsqueda y filtros 100% client-side.
+- **Catálogo de plataformas** — 40 presets (Instagram, Google, Netflix…) con logos locales (`simple-icons`, cero requests a terceros) que pre-llenan nombre + URL.
+- **Dashboard de salud** — fortaleza (entropía + tiempo de crackeo), duplicados, HIBP vía k-Anonymity.
+- **Generador de contraseñas** configurable + TOTP viewer (RFC 6238).
+- **2FA de cuenta** — Supabase MFA TOTP (`/security`), challenge post-login (`/mfa`), skip en dispositivos confiables.
+- **Sesiones y dispositivos** (`/devices`) — heartbeat por dispositivo, revocación remota, cerrar otras sesiones.
+- **Compartir credenciales E2E** — RSA-OAEP 3072 por usuario; snapshot cifrado con AES efímera envuelta con la pública del destinatario. Expiración configurable.
+- **Adjuntos cifrados** — blob y nombre cifrados client-side antes de subir a Storage (max 20 MB).
+- **Backup** — export/import JSON cifrado (PBKDF2 + AES-GCM) + vista previa descifrada solo en memoria.
+- **Auditoría** (`/audit`) — login, unlock, cambios, exports.
+- **Tema claro/oscuro/sistema** + skeletons + toasts + diálogos de confirmación accesibles.
+
 ## Estado actual del proyecto
 
 Ver [`plan.md`](plan.md) para el checklist canónico y [`PROGRESS_LOG.md`](PROGRESS_LOG.md) para el detalle de cada fase completada.
 
-- ✅ Fase 1 — Setup, scaffold, folder structure, Supabase clients.
-- ⚠️ Fase 2 — Migraciones SQL escritas, no aplicadas (ver `DECISIONS_NEEDED.md`).
-- ⏸ Fase 3 — Auth. Bloqueada por Fase 2.
-- ✅ Fase 4 — Módulo cripto Zero-Knowledge + tests + `CRYPTO_FLOW.md`.
-- ⏸ Fase 5 — CRUD. Bloqueada por Fase 2+3.
-- 🟨 Fase 6 (parcial) — Generador de passwords, strength meter, HIBP k-anonymity. UI del dashboard bloqueada por CRUD.
-- 🟨 Fase 7 (parcial) — Algoritmo TOTP RFC 6238 con Web Crypto. Wiring UI bloqueado.
-- ⏸ Fase 8 — Pulido, docs, E2E. Depende del resto.
+- ✅ Fases 1–7 — completas (setup, DB+RLS, auth, cripto, CRUD, dashboard, avanzadas).
+- 🟨 Fase 8 — pulido y docs en curso. Pendiente: E2E con Playwright (requiere descarga de browsers), Google OAuth (config manual en dashboards, ver `DECISIONS_NEEDED.md`).
+
+## Documentación
+
+- [`docs/CRYPTO_FLOW.md`](docs/CRYPTO_FLOW.md) — flujo criptográfico completo.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — diagrama de arquitectura + ERD.
+- [`docs/DEPLOY_VERCEL.md`](docs/DEPLOY_VERCEL.md) — manual de despliegue.
 
 ## Reglas de seguridad no negociables
 

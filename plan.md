@@ -64,13 +64,13 @@ Marca cada casilla al completar y verificar (tests + build/lint pasando) antes d
 - [x] Archivos adjuntos cifrados — tabla `attachments` + bucket, blob y nombre cifrados client-side, 20 MB max
 
 ## Fase 8 — Pulido, pruebas y documentación
-- [ ] Modo claro/oscuro, responsive, skeletons, toasts, confirmaciones
-- [ ] Accesibilidad (WCAG, navegación por teclado, ARIA)
-- [ ] Pruebas de integración de flujos principales
-- [ ] Pruebas E2E (login, desbloqueo, crear credencial)
-- [ ] README completo + guía de instalación + `.env.example`
-- [ ] Diagrama de arquitectura y ERD
-- [ ] Manual de despliegue en Vercel
+- [x] Modo claro/oscuro, responsive, skeletons, toasts, confirmaciones — next-themes + sonner + ConfirmDialogProvider (alertdialog accesible)
+- [x] Accesibilidad — aria-labels en botones-icono, labels en forms, skip-link, role=alertdialog/radiogroup, Escape/focus management en diálogos. Auditoría WCAG formal con herramienta pendiente.
+- [x] Pruebas de integración de flujos principales — 104 tests Vitest (cripto completo incl. flujo de compartir E2E, backup roundtrip, matcher de plataformas, TOTP, HIBP)
+- [ ] Pruebas E2E (login, desbloqueo, crear credencial) — pendiente: Playwright requiere descarga de browsers (~300MB) y credenciales de test; decisión humana
+- [x] README completo + guía de instalación + `.env.example`
+- [x] Diagrama de arquitectura y ERD — `docs/ARCHITECTURE.md` (mermaid: flujo de datos, compartir E2E, ERD)
+- [x] Manual de despliegue en Vercel — `docs/DEPLOY_VERCEL.md`
 
 ## Notas para trabajo autónomo
 - No avances de fase sin verificar la anterior (tests + lint/build).

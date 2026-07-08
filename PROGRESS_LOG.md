@@ -534,3 +534,29 @@ Los items restantes de Fase 8 (dark mode, a11y, E2E, diagramas de arquitectura y
 - ✅ `npm run build` — 23 rutas OK, incluidas `/devices`, `/security`, `/mfa`, `/shared`.
 
 ---
+
+## Fase 8 — Pulido, pruebas y documentación (CIERRE) ✅
+
+**Fecha:** 2026-07-08
+
+### Qué se implementó
+
+- **Toasts (sonner)** montado en RootLayout: feedback en crear/editar/borrar items, copiar password, backup, shares, adjuntos, 2FA, dispositivos.
+- **ConfirmDialogProvider** — reemplazo de `window.confirm()` con API de promesa (`useConfirm`), `role="alertdialog"`, Escape cancela, focus inicial en Cancelar, variante destructiva. Un solo diálogo global.
+- **Skeletons** en la carga del vault (dashboard + filtros + lista) en vez de spinner.
+- **A11y**: skip-link "Saltar al contenido", `aria-busy` en loading, aria-labels ya presentes en botones-icono, radiogroups en theme toggle y color picker.
+- **Tests**: +10 del matcher de plataformas (hostname, subdominios, URL malformada). Total 104.
+- **Docs**: README reescrito con features reales y estado, `docs/ARCHITECTURE.md` (mermaid: arquitectura, flujo item, compartir E2E, ERD), `docs/DEPLOY_VERCEL.md` (env vars, redirect URLs, checklist post-deploy).
+
+### Pendiente (decisión humana)
+
+- **E2E Playwright** — requiere descargar browsers (~300MB) y definir estrategia de credenciales de test contra Supabase real (o proyecto de staging). No se hizo sin confirmación.
+- **Auditoría WCAG formal** con axe/Lighthouse — el groundwork está; falta pasada con herramienta.
+- **Google OAuth** — sigue en DECISIONS_NEEDED #2.
+
+### Verificación
+
+- ✅ `npx vitest run` — 104/104.
+- ✅ `npm run build` — 23 rutas OK.
+
+---
