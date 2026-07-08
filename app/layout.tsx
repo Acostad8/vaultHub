@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+import { ThemeProvider } from "@/components/providers/theme-provider";
+
 // Manrope: neo-grotesque geometrica moderna, ligeramente redondeada.
 // Legibilidad alta y personalidad neutra apta para producto profesional.
 const manrope = Manrope({
@@ -32,9 +34,17 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="bg-background text-foreground flex min-h-full flex-col font-sans">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

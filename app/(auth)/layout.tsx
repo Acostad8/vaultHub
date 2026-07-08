@@ -1,17 +1,22 @@
 import Link from "next/link";
-import { Shield } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="fixed top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       {/* Panel izquierdo (solo desktop): branding + tagline sobre gradiente radial */}
       <aside className="relative hidden overflow-hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-between lg:p-12 lg:text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#4f46e5,#0f172a_60%)]" />
         <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:22px_22px]" />
 
         <Link href="/" className="relative z-10 flex items-center gap-2 text-lg font-semibold">
-          <Shield className="size-6" strokeWidth={2.2} />
+          <Logo className="size-6" />
           VaultHub
         </Link>
 
@@ -40,7 +45,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             href="/"
             className="mb-8 flex items-center justify-center gap-2 text-lg font-semibold lg:hidden"
           >
-            <Shield className="size-5" strokeWidth={2.2} />
+            <Logo className="size-5" />
             VaultHub
           </Link>
           {children}

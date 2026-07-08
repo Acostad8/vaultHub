@@ -49,6 +49,9 @@
 }
 
 :root {
+  /* Sin color-scheme, los popups nativos (select/option) renderizan fondo
+     claro del OS con texto heredado claro en dark mode -> opciones invisibles. */
+  color-scheme: light;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -84,6 +87,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -132,6 +136,18 @@
   textarea {
     @apply rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none transition;
     @apply focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50;
+  }
+  /* Fallback explicito para el popup de <select>: algunos navegadores ignoran
+     color-scheme en <option> y pintan fondo claro del OS con texto heredado
+     claro en dark mode -> opciones invisibles. */
+  select {
+    @apply bg-background;
+  }
+  select option {
+    @apply bg-white text-zinc-900;
+  }
+  .dark select option {
+    @apply bg-zinc-900 text-zinc-100;
   }
   h1,
   h2,
