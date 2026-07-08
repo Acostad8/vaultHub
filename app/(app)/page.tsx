@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, Archive, Folder, Plus, Sparkles, Tag, Trash2 } from "lucide-react";
+import { Activity, Archive, Folder, MonitorSmartphone, Plus, Sparkles, Tag, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
@@ -76,6 +76,13 @@ export default function Home() {
             >
               <Activity className="size-4" />
               Actividad
+            </Link>
+            <Link
+              href="/devices"
+              className={buttonVariants({ variant: "outline", className: "gap-2" })}
+            >
+              <MonitorSmartphone className="size-4" />
+              Dispositivos
             </Link>
             <Link
               href="/trash"

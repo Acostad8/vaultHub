@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import { useProfileCache } from "@/store/profile";
 import { useVaultLock } from "@/store/vault-lock";
 import { useAutoLock } from "@/hooks/use-auto-lock";
+import { heartbeatCurrentDevice } from "@/services/devices";
+import { signOut } from "@/services/auth";
 
 // Gate cliente: decide si mostrar setup, unlock, o el contenido protegido
 // segun estado del profile (initialized?) y del store (unlocked?).
@@ -24,6 +26,21 @@ export function VaultGate({ children }: { children: React.ReactNode }) {
     if (profile) return;
     loadProfile().catch((err) => setLoadError(errorMessage(err, "Error")));
   }, [profile, loadProfile]);
+
+  // Registro/heartbeat de dispositivo + deteccion de revocacion remota.
+  // Si este dispositivo fue revocado desde otra sesion, cerramos sesion local.
+  useEffect(() => {
+    if (!isUnlocked) return;
+    heartbeatCurrentDevice()
+      .then(({ revoked }) => {
+        if (revoked) {
+          void signOut().finally(() => router.replace("/login"));
+        }
+      })
+      .catch(() => {
+        // heartbeat es best-effort; sin red no bloquea el vault
+      });
+  }, [isUnlocked, router]);
 
   useEffect(() => {
     if (!profile) return;
