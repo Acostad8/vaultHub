@@ -13,6 +13,7 @@ import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { GoogleButton } from "@/components/auth/google-button";
 import { signInWithPassword } from "@/services/auth";
+import { isCurrentDeviceTrusted, mfaChallengeRequired } from "@/services/mfa";
 import { loginSchema, type LoginInput } from "@/validators/auth";
 
 export function LoginForm() {
@@ -36,7 +37,15 @@ export function LoginForm() {
     setServerError(null);
     try {
       await signInWithPassword(values);
-      router.push(nextParam ?? "/");
+      const next = nextParam ?? "/";
+      // 2FA: si la cuenta tiene TOTP y este dispositivo no es confiable,
+      // pedir el codigo antes de entrar.
+      const { required } = await mfaChallengeRequired();
+      if (required && !(await isCurrentDeviceTrusted())) {
+        router.push(`/mfa?next=${encodeURIComponent(next)}`);
+        return;
+      }
+      router.push(next);
       router.refresh();
     } catch (err) {
       setServerError(errorMessage(err, "Error al iniciar sesion"));
