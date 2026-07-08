@@ -18,7 +18,33 @@ import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/vault/page-header";
 import { VaultGate } from "@/components/vault/vault-gate";
-import { downloadBackup, exportBackup, importBackup, type ImportSummary } from "@/services/backup";
+import {
+  downloadBackup,
+  exportBackup,
+  importBackup,
+  previewBackup,
+  type BackupPlaintext,
+  type ImportSummary,
+} from "@/services/backup";
+
+const ITEM_TYPE_LABEL: Record<string, string> = {
+  password: "Password",
+  note: "Nota",
+  api_key: "API Key",
+  ssh_key: "SSH",
+  card: "Tarjeta",
+  identity: "Identidad",
+  totp: "TOTP",
+};
+
+// Campos sensibles por tipo que la vista previa muestra ocultos con reveal.
+function secretOfPayload(p: Record<string, unknown>): string | null {
+  for (const k of ["password", "secret", "key", "private_key", "number"]) {
+    const v = p[k];
+    if (typeof v === "string" && v.length > 0) return v;
+  }
+  return null;
+}
 
 function BackupInner() {
   const [exportPwd, setExportPwd] = useState("");
@@ -31,6 +57,9 @@ function BackupInner() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [preview, setPreview] = useState<BackupPlaintext | null>(null);
+  const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
 
   async function handleExport() {
     setExportOk(false);
@@ -52,9 +81,35 @@ function BackupInner() {
     }
   }
 
+  async function handlePreview() {
+    setImportSummary(null);
+    setImportError(null);
+    setPreview(null);
+    setRevealedIdx(null);
+    if (!file) {
+      setImportError("Selecciona un archivo .json");
+      return;
+    }
+    if (importPwd.length === 0) {
+      setImportError("Ingresa la password del backup");
+      return;
+    }
+    setPreviewBusy(true);
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      setPreview(await previewBackup(json, importPwd));
+    } catch (err) {
+      setImportError(errorMessage(err, "Error descifrando"));
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
   async function handleImport() {
     setImportSummary(null);
     setImportError(null);
+    setPreview(null);
     if (!file) {
       setImportError("Selecciona un archivo .json");
       return;
@@ -203,16 +258,94 @@ function BackupInner() {
           </div>
         ) : null}
 
-        <Button
-          onClick={handleImport}
-          disabled={importBusy || !file || importPwd.length === 0}
-          className="w-full gap-2"
-          size="lg"
-          variant="outline"
-        >
-          <Upload className="size-4" />
-          {importBusy ? "Descifrando…" : "Importar"}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            onClick={handlePreview}
+            disabled={previewBusy || importBusy || !file || importPwd.length === 0}
+            className="flex-1 gap-2"
+            size="lg"
+            variant="secondary"
+          >
+            <Eye className="size-4" />
+            {previewBusy ? "Descifrando…" : "Vista previa"}
+          </Button>
+          <Button
+            onClick={handleImport}
+            disabled={importBusy || previewBusy || !file || importPwd.length === 0}
+            className="flex-1 gap-2"
+            size="lg"
+            variant="outline"
+          >
+            <Upload className="size-4" />
+            {importBusy ? "Descifrando…" : "Importar"}
+          </Button>
+        </div>
+
+        {preview ? (
+          <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold">Contenido del backup</h4>
+                <p className="text-xs text-zinc-500">
+                  Exportado {new Date(preview.exported_at).toLocaleString()} ·{" "}
+                  {preview.items.length} items · {preview.categories.length} categorias ·{" "}
+                  {preview.tags.length} tags. Solo lectura — nada se importo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null);
+                  setRevealedIdx(null);
+                }}
+                className="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                aria-label="Cerrar vista previa"
+              >
+                <EyeOff className="size-4" />
+              </button>
+            </div>
+            <ul className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
+              {preview.items.map((it, idx) => {
+                const p = it.payload as unknown as Record<string, unknown>;
+                const name = typeof p.name === "string" ? p.name : "(sin nombre)";
+                const username = typeof p.username === "string" ? p.username : null;
+                const secret = secretOfPayload(p);
+                const revealed = revealedIdx === idx;
+                return (
+                  <li
+                    key={idx}
+                    className="rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        {ITEM_TYPE_LABEL[it.item_type] ?? it.item_type}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                      {secret ? (
+                        <button
+                          type="button"
+                          onClick={() => setRevealedIdx(revealed ? null : idx)}
+                          className="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                          aria-label={revealed ? "Ocultar secreto" : "Ver secreto"}
+                        >
+                          {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      ) : null}
+                    </div>
+                    {username ? (
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">{username}</p>
+                    ) : null}
+                    {secret ? (
+                      <p className="mt-1 font-mono text-xs break-all text-zinc-700 dark:text-zinc-300">
+                        {revealed ? secret : "••••••••••••"}
+                      </p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

@@ -25,7 +25,7 @@ import { listDecryptedTags, createTag, assignTagsToItem, fetchItemTagsMap } from
 import { logAudit } from "@/services/audit";
 import type { VaultItemDecrypted, VaultItemType, VaultItemPayload } from "@/types/vault";
 
-interface BackupItem {
+export interface BackupItem {
   item_type: VaultItemType;
   category_name: string | null;
   tag_names: string[];
@@ -33,7 +33,7 @@ interface BackupItem {
   payload: VaultItemPayload;
 }
 
-interface BackupPlaintext {
+export interface BackupPlaintext {
   exported_at: string;
   items: BackupItem[];
   categories: Array<{ name: string; color: string | null }>;
@@ -122,10 +122,12 @@ function isEncryptedBackup(v: unknown): v is EncryptedBackup {
   );
 }
 
-export async function importBackup(
+// Descifra un backup SOLO en memoria, sin escribir nada en el vault.
+// Base de la vista previa y del import.
+export async function previewBackup(
   backupJson: unknown,
   backupPassword: string,
-): Promise<ImportSummary> {
+): Promise<BackupPlaintext> {
   if (!isEncryptedBackup(backupJson)) {
     throw new Error("Formato de backup no valido");
   }
@@ -136,15 +138,21 @@ export async function importBackup(
     iterations: backupJson.kdf.iterations,
   });
 
-  let plaintext: BackupPlaintext;
   try {
-    plaintext = await decryptPayload<BackupPlaintext>(key, {
+    return await decryptPayload<BackupPlaintext>(key, {
       ciphertext: backupJson.cipher.ciphertext,
       iv: backupJson.cipher.iv,
     });
   } catch {
     throw new Error("Password del backup incorrecta o backup corrupto");
   }
+}
+
+export async function importBackup(
+  backupJson: unknown,
+  backupPassword: string,
+): Promise<ImportSummary> {
+  const plaintext = await previewBackup(backupJson, backupPassword);
 
   // Categorias primero — reused by items
   const [existingCats, existingTags] = await Promise.all([
