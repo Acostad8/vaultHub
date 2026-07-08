@@ -8,6 +8,7 @@ import { Check, Plus, Tag as TagIcon, X } from "lucide-react";
 import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker";
 import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ function TagsInner() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [color, setColor] = useState("");
 
   const {
     register,
@@ -62,8 +64,9 @@ function TagsInner() {
   }, []);
 
   async function onSubmit(values: TagInput) {
-    await createTag({ name: values.name, color: values.color || null });
+    await createTag({ name: values.name, color: color || null });
     reset({ name: "", color: "" });
+    setColor("");
     void reload();
   }
 
@@ -89,37 +92,32 @@ function TagsInner() {
       />
 
       <Card className="mb-4 p-5">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px_auto]"
-          noValidate
-        >
-          <div className="space-y-1">
-            <Label htmlFor="name" className="text-xs">
-              Nombre
-            </Label>
-            <InputWithIcon
-              id="name"
-              placeholder="importante, personal…"
-              leftIcon={<TagIcon className="size-4" />}
-              {...register("name")}
-            />
-            {errors.name ? <p className="text-xs text-red-600">{errors.name.message}</p> : null}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-xs">
+                Nombre
+              </Label>
+              <InputWithIcon
+                id="name"
+                placeholder="importante, personal…"
+                leftIcon={<TagIcon className="size-4" />}
+                {...register("name")}
+              />
+              {errors.name ? (
+                <p className="text-xs text-red-600">{errors.name.message}</p>
+              ) : null}
+            </div>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full gap-1.5 sm:w-auto" disabled={isSubmitting}>
+                <Plus className="size-4" />
+                Crear
+              </Button>
+            </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="color" className="text-xs">
-              Color
-            </Label>
-            <Input id="color" placeholder="#7c3aed" {...register("color")} />
-            {errors.color ? (
-              <p className="text-xs text-red-600">{errors.color.message}</p>
-            ) : null}
-          </div>
-          <div className="flex items-end">
-            <Button type="submit" className="w-full gap-1.5 sm:w-auto" disabled={isSubmitting}>
-              <Plus className="size-4" />
-              Crear
-            </Button>
+            <Label className="text-xs">Color</Label>
+            <ColorSwatchPicker value={color} onChange={setColor} disabled={isSubmitting} />
           </div>
         </form>
       </Card>
