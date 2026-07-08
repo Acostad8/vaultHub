@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Activity, Archive, Folder, Plus, Shield, Sparkles, Tag, Trash2 } from "lucide-react";
+import { Activity, Archive, Folder, Plus, Sparkles, Tag, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { VaultGate } from "@/components/vault/vault-gate";
 import { VaultList } from "@/components/vault/vault-list";
@@ -14,7 +15,7 @@ export default function Home() {
       <header className="sticky top-0 z-20 border-b border-zinc-200/70 bg-white/80 backdrop-blur-md dark:border-zinc-800/70 dark:bg-zinc-950/80">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <Shield className="size-5" strokeWidth={2.2} />
+            <Logo className="size-5" />
             <span className="text-base font-semibold tracking-tight">VaultHub</span>
           </Link>
           <div className="flex items-center gap-3">

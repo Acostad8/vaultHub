@@ -34,8 +34,10 @@ import { listDecryptedCategories, type DecryptedCategory } from "@/services/cate
 import { fetchItemTagsMap, listDecryptedTags, type DecryptedTag } from "@/services/tags";
 import { analyzeVault } from "@/services/vault-analysis";
 import { useVaultCache } from "@/store/vault-cache";
+import { matchPlatform } from "@/constants/platforms";
 import type { VaultItemDecrypted, VaultItemType } from "@/types/vault";
 import { DashboardSummary } from "./dashboard-summary";
+import { PlatformIcon } from "./platform-icon";
 
 const TYPE_META: Record<
   VaultItemType,
@@ -299,6 +301,8 @@ export function VaultList() {
           const cat = item.category_id ? categoryNameById.get(item.category_id) : null;
           const meta = TYPE_META[item.item_type];
           const Icon = meta.icon;
+          const platform =
+            item.item_type === "password" ? matchPlatform(p.name, p.url) : null;
           const revealed = revealedId === item.id;
           const copied = copiedId === item.id;
           const hasPassword = typeof p.password === "string" && p.password.length > 0;
@@ -306,11 +310,17 @@ export function VaultList() {
             <li key={item.id}>
               <Card className="group transition-colors hover:border-zinc-300 dark:hover:border-zinc-700">
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <div
-                    className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${meta.accent}`}
-                  >
-                    <Icon className="size-5" />
-                  </div>
+                  {platform ? (
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-zinc-200 dark:ring-zinc-700">
+                      <PlatformIcon slug={platform.slug} className="size-5" />
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${meta.accent}`}
+                    >
+                      <Icon className="size-5" />
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">

@@ -15,7 +15,9 @@ import { assignTagsToItem, fetchItemTagsMap } from "@/services/tags";
 import { checkHibp, generatePassword, evaluatePasswordStrength } from "@/lib/password";
 import { passwordItemSchema, type PasswordItemInput } from "@/validators/vault";
 import type { PasswordPayload, VaultItemDecrypted } from "@/types/vault";
+import type { PlatformPreset } from "@/constants/platforms";
 import { ItemMetaFields } from "./item-meta-fields";
+import { PlatformPicker } from "./platform-picker";
 
 interface Props {
   mode: "create" | "edit";
@@ -70,6 +72,11 @@ export function PasswordItemForm({ mode, existing }: Props) {
       cancelled = true;
     };
   }, [existing, mode]);
+
+  function handlePlatformSelect(preset: PlatformPreset) {
+    setValue("name", preset.name, { shouldValidate: true });
+    setValue("url", preset.url, { shouldValidate: true });
+  }
 
   function handleGenerate() {
     const generated = generatePassword({ length: 20 });
@@ -129,6 +136,7 @@ export function PasswordItemForm({ mode, existing }: Props) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      {mode === "create" ? <PlatformPicker onSelect={handlePlatformSelect} /> : null}
       <div className="space-y-2">
         <Label htmlFor="name">Nombre</Label>
         <Input id="name" {...register("name")} />
