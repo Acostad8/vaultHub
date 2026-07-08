@@ -12,6 +12,8 @@ export {
 
 export { generateSalt, generateSaltBase64, generateIv, generateRandomBytes } from "./random";
 
+export { bytesToBase64, base64ToBytes } from "./base64";
+
 export { deriveMasterKey } from "./kdf";
 export type { DeriveMasterKeyOptions } from "./kdf";
 
