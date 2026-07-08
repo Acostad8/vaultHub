@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, Copy, ShieldCheck, ShieldOff } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +24,7 @@ import {
 type Factor = { id: string; friendly_name: string | null; created_at: string };
 
 function SecurityInner() {
+  const confirm = useConfirm();
   const [factors, setFactors] = useState<Factor[] | null>(null);
   const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null);
   const [code, setCode] = useState("");
@@ -62,6 +66,7 @@ function SecurityInner() {
       await verifyTotpEnrollment(enrollment.factorId, code);
       setEnrollment(null);
       setCode("");
+      toast.success("2FA activado");
       void reload();
     } catch (err) {
       setError(errorMessage(err, "Codigo incorrecto — intenta de nuevo"));
@@ -72,16 +77,19 @@ function SecurityInner() {
   }
 
   async function handleUnenroll(factorId: string) {
-    if (
-      !confirm(
-        "Desactivar 2FA? Tu cuenta quedara protegida solo por password. El vault sigue requiriendo la master password.",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Desactivar 2FA?",
+      description:
+        "Tu cuenta quedara protegida solo por password. El vault sigue requiriendo la master password.",
+      confirmLabel: "Desactivar",
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError(null);
     try {
       await unenrollTotp(factorId);
+      toast.success("2FA desactivado");
       void reload();
     } catch (err) {
       setError(errorMessage(err, "Error desactivando"));

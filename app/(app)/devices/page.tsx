@@ -13,7 +13,10 @@ import {
   X,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -36,6 +39,7 @@ function DeviceIcon({ ua }: { ua: string | null }) {
 }
 
 function DevicesInner() {
+  const confirm = useConfirm();
   const [devices, setDevices] = useState<DeviceItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -62,16 +66,22 @@ function DevicesInner() {
   }
 
   async function handleRevoke(d: DeviceItem) {
-    if (
-      !confirm(
-        d.is_current
-          ? "Este es TU dispositivo actual. Revocarlo cerrara tu sesion aqui. Continuar?"
-          : `Revocar "${d.device_name}"? Ese dispositivo cerrara sesion en su proximo uso.`,
-      )
-    )
-      return;
-    await revokeDevice(d.id);
-    void reload();
+    const ok = await confirm({
+      title: d.is_current ? "Revocar TU dispositivo actual?" : `Revocar "${d.device_name}"?`,
+      description: d.is_current
+        ? "Cerrara tu sesion aqui inmediatamente."
+        : "Ese dispositivo cerrara sesion en su proximo uso.",
+      confirmLabel: "Revocar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await revokeDevice(d.id);
+      toast.success("Dispositivo revocado");
+      void reload();
+    } catch (err) {
+      toast.error(errorMessage(err, "Error revocando"));
+    }
   }
 
   async function handleRename(id: string) {
@@ -83,12 +93,18 @@ function DevicesInner() {
   }
 
   async function handleSignOutOthers() {
-    if (!confirm("Cerrar sesion en todos los demas dispositivos?")) return;
+    const ok = await confirm({
+      title: "Cerrar otras sesiones?",
+      description: "Se revocan los tokens de todas las demas sesiones activas.",
+      confirmLabel: "Cerrar sesiones",
+    });
+    if (!ok) return;
     setBusy(true);
     setOthersClosed(false);
     try {
       await signOutOtherSessions();
       setOthersClosed(true);
+      toast.success("Sesiones remotas revocadas");
     } catch (err) {
       setError(errorMessage(err, "Error cerrando sesiones"));
     } finally {

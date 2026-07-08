@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
 
 import { useRouter } from "next/navigation";
@@ -122,6 +124,7 @@ function ItemFormWrapper<TInput extends FieldValues, TPayload extends VaultItemP
         return;
       }
       await assignTagsToItem(itemId, tagIds);
+      toast.success(mode === "create" ? "Item creado" : "Cambios guardados");
       router.push("/");
       router.refresh();
     } catch (err) {

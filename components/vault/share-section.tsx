@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { Send, Share2, Trash2 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +19,7 @@ import {
 } from "@/services/sharing";
 
 export function ShareSection({ itemId }: { itemId: string }) {
+  const confirm = useConfirm();
   const [shares, setShares] = useState<GivenShareRow[] | null>(null);
   const [email, setEmail] = useState("");
   const [expiresDays, setExpiresDays] = useState<string>("7");
@@ -46,6 +50,7 @@ export function ShareSection({ itemId }: { itemId: string }) {
       const days = expiresDays === "" ? null : Number(expiresDays);
       await shareItem({ itemId, recipientEmail: email.trim(), expiresInDays: days });
       setOk(`Compartido con ${email.trim()}.`);
+      toast.success(`Compartido con ${email.trim()}`);
       setEmail("");
       void reload();
     } catch (err) {
@@ -56,10 +61,17 @@ export function ShareSection({ itemId }: { itemId: string }) {
   }
 
   async function handleRevoke(share: GivenShareRow) {
-    if (!confirm(`Revocar acceso de ${share.recipient_email}?`)) return;
+    const ok = await confirm({
+      title: `Revocar acceso de ${share.recipient_email}?`,
+      description: "Dejara de ver este item inmediatamente.",
+      confirmLabel: "Revocar",
+      destructive: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await revokeShare(share.id);
+      toast.success("Acceso revocado");
       void reload();
     } catch (err) {
       setError(errorMessage(err, "Error revocando"));

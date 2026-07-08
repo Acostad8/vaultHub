@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, FileLock2, Paperclip, Trash2, Upload } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -22,6 +25,7 @@ function formatBytes(n: number): string {
 }
 
 export function AttachmentsSection({ itemId }: { itemId: string }) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<AttachmentDecrypted[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,6 +55,7 @@ export function AttachmentsSection({ itemId }: { itemId: string }) {
     try {
       const created = await uploadAttachment(itemId, file);
       setItems((cur) => [...(cur ?? []), created]);
+      toast.success(`"${file.name}" cifrado y subido`);
     } catch (err) {
       setError(errorMessage(err, "Error subiendo"));
     } finally {
@@ -69,11 +74,18 @@ export function AttachmentsSection({ itemId }: { itemId: string }) {
   }
 
   async function handleDelete(att: AttachmentDecrypted) {
-    if (!confirm(`Borrar "${att.filename}"? No se puede deshacer.`)) return;
+    const ok = await confirm({
+      title: `Borrar "${att.filename}"?`,
+      description: "No se puede deshacer.",
+      confirmLabel: "Borrar",
+      destructive: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await removeAttachment(att);
       setItems((cur) => (cur ?? []).filter((a) => a.row.id !== att.row.id));
+      toast.success("Adjunto borrado");
     } catch (err) {
       setError(errorMessage(err, "Error borrando"));
     }

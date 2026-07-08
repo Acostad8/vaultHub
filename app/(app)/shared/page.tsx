@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Inbox, Share2, X } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/vault/page-header";
 import { VaultGate } from "@/components/vault/vault-gate";
@@ -26,6 +29,7 @@ const TYPE_LABEL: Record<string, string> = {
 const SECRET_KEYS = ["password", "secret", "key", "private_key", "number", "cvv"] as const;
 
 function SharedInner() {
+  const confirm = useConfirm();
   const [shares, setShares] = useState<ReceivedShareDecrypted[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
@@ -44,10 +48,16 @@ function SharedInner() {
   }, []);
 
   async function handleDismiss(share: ReceivedShareDecrypted) {
-    if (!confirm("Quitar este item compartido de tu vista?")) return;
+    const ok = await confirm({
+      title: "Quitar de tu vista?",
+      description: "El owner tendria que volver a compartirlo si lo necesitas de nuevo.",
+      confirmLabel: "Quitar",
+    });
+    if (!ok) return;
     try {
       await dismissReceivedShare(share.id);
       setShares((cur) => (cur ?? []).filter((s) => s.id !== share.id));
+      toast.success("Item quitado de tu vista");
     } catch (err) {
       setError(errorMessage(err, "Error"));
     }

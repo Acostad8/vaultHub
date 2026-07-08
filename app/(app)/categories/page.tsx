@@ -5,7 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Folder, Pencil, Plus, Trash2, X } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker";
@@ -24,6 +27,7 @@ import {
 import { categorySchema, type CategoryInput } from "@/validators/vault";
 
 function CategoriesInner() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<DecryptedCategory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -79,9 +83,20 @@ function CategoriesInner() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Borrar esta categoria? Los items se quedan sin categoria.")) return;
-    await removeCategory(id);
-    void reload();
+    const ok = await confirm({
+      title: "Borrar esta categoria?",
+      description: "Los items se quedan sin categoria (no se borran).",
+      confirmLabel: "Borrar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await removeCategory(id);
+      toast.success("Categoria borrada");
+      void reload();
+    } catch (err) {
+      toast.error(errorMessage(err, "Error borrando"));
+    }
   }
 
   return (

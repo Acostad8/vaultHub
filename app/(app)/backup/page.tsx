@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import {
   AlertCircle,
@@ -73,6 +74,7 @@ function BackupInner() {
       const backup = await exportBackup(exportPwd);
       downloadBackup(backup);
       setExportOk(true);
+      toast.success("Backup cifrado y descargado");
       setExportPwd("");
     } catch (err) {
       setExportError(errorMessage(err, "Error exportando"));
@@ -124,6 +126,7 @@ function BackupInner() {
       const json = JSON.parse(text);
       const summary = await importBackup(json, importPwd);
       setImportSummary(summary);
+      toast.success(`Importados ${summary.itemsImported} items`);
       setImportPwd("");
       setFile(null);
     } catch (err) {

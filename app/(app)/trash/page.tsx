@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { VaultGate } from "@/components/vault/vault-gate";
@@ -12,6 +15,7 @@ import { listDecryptedTrash, purgeItem, restoreItem } from "@/services/vault-ite
 import type { VaultItemDecrypted } from "@/types/vault";
 
 function TrashInner() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<VaultItemDecrypted[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,14 +34,30 @@ function TrashInner() {
   }, []);
 
   async function handleRestore(id: string) {
-    await restoreItem(id);
-    setItems((prev) => prev?.filter((it) => it.id !== id) ?? prev);
+    try {
+      await restoreItem(id);
+      setItems((prev) => prev?.filter((it) => it.id !== id) ?? prev);
+      toast.success("Item restaurado");
+    } catch (err) {
+      toast.error(errorMessage(err, "Error restaurando"));
+    }
   }
 
   async function handlePurge(id: string) {
-    if (!confirm("Eliminar permanentemente? Esta accion NO se puede deshacer.")) return;
-    await purgeItem(id);
-    setItems((prev) => prev?.filter((it) => it.id !== id) ?? prev);
+    const ok = await confirm({
+      title: "Eliminar permanentemente?",
+      description: "Esta accion NO se puede deshacer. El item y su historial se borran.",
+      confirmLabel: "Purgar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await purgeItem(id);
+      setItems((prev) => prev?.filter((it) => it.id !== id) ?? prev);
+      toast.success("Item purgado");
+    } catch (err) {
+      toast.error(errorMessage(err, "Error purgando"));
+    }
   }
 
   return (

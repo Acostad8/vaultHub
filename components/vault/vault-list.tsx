@@ -22,9 +22,13 @@ import {
   X,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Card } from "@/components/ui/card";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   listDecryptedItems,
   toggleFavorite,
@@ -90,6 +94,7 @@ function matchesFilters(
 }
 
 export function VaultList() {
+  const confirm = useConfirm();
   const cachedItems = useVaultCache((s) => s.items);
   const cachedCategories = useVaultCache((s) => s.categories);
   const cachedTags = useVaultCache((s) => s.tags);
@@ -156,9 +161,19 @@ export function VaultList() {
   const analysis = useMemo(() => (items ? analyzeVault(items) : null), [items]);
 
   async function handleDelete(id: string) {
-    if (!confirm("Enviar a la papelera?")) return;
-    await trashItem(id);
-    useVaultCache.getState().removeItem(id);
+    const ok = await confirm({
+      title: "Enviar a la papelera?",
+      description: "Puedes restaurarlo desde la papelera cuando quieras.",
+      confirmLabel: "Enviar",
+    });
+    if (!ok) return;
+    try {
+      await trashItem(id);
+      useVaultCache.getState().removeItem(id);
+      toast.success("Item enviado a la papelera");
+    } catch (err) {
+      toast.error(errorMessage(err, "Error eliminando"));
+    }
   }
 
   async function handleToggleFav(id: string, next: boolean) {
@@ -179,15 +194,25 @@ export function VaultList() {
   async function handleCopy(id: string, password: string) {
     await navigator.clipboard.writeText(password);
     setCopiedId(id);
+    toast.success("Password copiado al portapapeles");
     setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
   }
 
   if (error) return <p className="text-sm text-red-600">{error}</p>;
   if (!items || !filtered) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-zinc-500">
-        <div className="size-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-        Cargando items…
+      <div className="space-y-5" aria-busy="true" aria-label="Cargando items">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+        <Skeleton className="h-24" />
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-16" />
+          ))}
+        </div>
       </div>
     );
   }

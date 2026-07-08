@@ -5,7 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Plus, Tag as TagIcon, X } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { errorMessage } from "@/lib/errors";
+import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker";
@@ -24,6 +27,7 @@ import {
 import { tagSchema, type TagInput } from "@/validators/vault";
 
 function TagsInner() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<DecryptedTag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -79,9 +83,20 @@ function TagsInner() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Borrar este tag? Se quita de todos los items.")) return;
-    await removeTag(id);
-    void reload();
+    const ok = await confirm({
+      title: "Borrar este tag?",
+      description: "Se quita de todos los items que lo usan.",
+      confirmLabel: "Borrar",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await removeTag(id);
+      toast.success("Tag borrado");
+      void reload();
+    } catch (err) {
+      toast.error(errorMessage(err, "Error borrando"));
+    }
   }
 
   return (
