@@ -40,6 +40,7 @@ export const PLATFORM_PRESETS: PlatformPreset[] = [
   // Trabajo / dev
   { slug: "github", name: "GitHub", url: "https://github.com" },
   { slug: "gitlab", name: "GitLab", url: "https://gitlab.com" },
+  { slug: "supabase", name: "Supabase", url: "https://supabase.com" },
   { slug: "linkedin", name: "LinkedIn", url: "https://www.linkedin.com" },
   { slug: "slack", name: "Slack", url: "https://slack.com" },
   { slug: "notion", name: "Notion", url: "https://www.notion.so" },
