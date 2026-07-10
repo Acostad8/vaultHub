@@ -11,19 +11,23 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-async function exchangeWithRetry(code: string, attempts = 3): Promise<Error | null> {
+type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+async function exchangeWithRetry(
+  code: string,
+  attempts = 3,
+): Promise<{ error: Error | null; supabase: SupabaseServerClient | null }> {
   let lastError: unknown = null;
   for (let i = 0; i < attempts; i++) {
     try {
       const supabase = await createSupabaseServerClient();
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
-        lastError = error;
         // Errores de Supabase Auth (codigo invalido, expirado, etc) NO se
         // reintentan — son deterministas.
-        return error;
+        return { error, supabase: null };
       }
-      return null;
+      return { error: null, supabase };
     } catch (err) {
       lastError = err;
       // TypeError/fetch failed: red inestable, reintenta.
@@ -32,7 +36,10 @@ async function exchangeWithRetry(code: string, attempts = 3): Promise<Error | nu
       }
     }
   }
-  return lastError instanceof Error ? lastError : new Error("exchange fallo");
+  return {
+    error: lastError instanceof Error ? lastError : new Error("exchange fallo"),
+    supabase: null,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -44,11 +51,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=missing_code", request.url));
   }
 
-  const err = await exchangeWithRetry(code);
-  if (err) {
+  const { error: err, supabase } = await exchangeWithRetry(code);
+  if (err || !supabase) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(err.message)}`, request.url),
+      new URL(`/login?error=${encodeURIComponent(err?.message ?? "exchange fallo")}`, request.url),
     );
+  }
+
+  // 2FA: el login por OAuth no pasa por el check del login form, asi que se
+  // chequea aqui. Si la cuenta tiene TOTP y la sesion quedo en AAL1, se manda
+  // a /mfa; esa pagina decide client-side el skip por dispositivo confiable
+  // (el fingerprint vive en localStorage, inaccesible desde este route).
+  try {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel) {
+      return NextResponse.redirect(
+        new URL(`/mfa?next=${encodeURIComponent(next)}`, request.url),
+      );
+    }
+  } catch {
+    // Ante error chequeando AAL, camino conservador: pedir 2FA igualmente.
+    return NextResponse.redirect(new URL(`/mfa?next=${encodeURIComponent(next)}`, request.url));
   }
 
   return NextResponse.redirect(new URL(next, request.url));

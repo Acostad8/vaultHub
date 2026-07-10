@@ -10,7 +10,15 @@ Usuario creó proyecto `vaulthub` (`jawefdwrfjsnclnbwxby`, us-east-1), corrió `
 
 --- 
 
-## 2. Google OAuth — activación manual en dashboard Supabase
+## 2. ~~Google OAuth — activación manual en dashboard Supabase~~ ✅ RESUELTO 2026-07-10
+
+Usuario configuró OAuth Client en Google Cloud Console y habilitó el provider en el dashboard de Supabase. Flujo "Continuar con Google" operativo.
+
+**Nota pendiente derivada:** el flujo OAuth no pasa por el check MFA del login form — si una cuenta con TOTP entra via Google, no se le pide el código. Mover el check a `/auth/callback` o a un layout client (anotado en PROGRESS_LOG Fase 7).
+
+---
+
+## (Histórico) 2. Google OAuth — activación manual en dashboard Supabase
 
 **Estado:** No bloqueante. El botón "Continuar con Google" está en `/login` y `/register`, pero al hacer click devuelve un error hasta que el provider esté configurado.
 

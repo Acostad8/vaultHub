@@ -8,7 +8,7 @@ import { errorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { mfaChallengeRequired, verifyMfaChallenge } from "@/services/mfa";
+import { isCurrentDeviceTrusted, mfaChallengeRequired, verifyMfaChallenge } from "@/services/mfa";
 
 function MfaInner() {
   const router = useRouter();
@@ -23,13 +23,20 @@ function MfaInner() {
   useEffect(() => {
     let cancelled = false;
     mfaChallengeRequired()
-      .then(({ required, factorId }) => {
+      .then(async ({ required, factorId }) => {
         if (cancelled) return;
         if (!required) {
           router.replace(nextParam);
           return;
         }
-        setFactorId(factorId);
+        // Skip app-level en dispositivo confiable (mismo criterio que el
+        // login con email; la sesion queda en AAL1 — ver services/mfa.ts).
+        // Cubre el flujo OAuth, que llega aqui via /auth/callback.
+        if (await isCurrentDeviceTrusted()) {
+          if (!cancelled) router.replace(nextParam);
+          return;
+        }
+        if (!cancelled) setFactorId(factorId);
       })
       .catch((err) => {
         if (!cancelled) setError(errorMessage(err, "Error verificando 2FA"));
