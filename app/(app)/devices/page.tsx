@@ -47,13 +47,16 @@ function DevicesInner() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
-  async function reload() {
-    setError(null);
-    try {
-      setDevices(await listMyDevices());
-    } catch (err) {
-      setError(errorMessage(err, "Error cargando dispositivos"));
-    }
+  // setState solo dentro de callbacks del Promise (no sincrono en el effect):
+  // requisito de react-hooks/set-state-in-effect.
+  function reload() {
+    return listMyDevices().then(
+      (list) => {
+        setDevices(list);
+        setError(null);
+      },
+      (err: unknown) => setError(errorMessage(err, "Error cargando dispositivos")),
+    );
   }
 
   useEffect(() => {

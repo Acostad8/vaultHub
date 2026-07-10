@@ -83,6 +83,22 @@ npm run dev
 | `npm test` | Vitest run (todos los tests). |
 | `npm run test:watch` | Vitest en modo watch. |
 | `npm run test:coverage` | Vitest con coverage v8. |
+| `npm run test:e2e` | Playwright (Chromium). Levanta `next dev` en el puerto 3001 automáticamente. |
+
+### Tests E2E (Playwright)
+
+Requisitos una sola vez:
+
+1. `npx playwright install chromium` (descarga el browser).
+2. Crear `.env.e2e` en la raíz (gitignored) con las credenciales del usuario de prueba:
+
+```
+E2E_EMAIL=e2e@vaulthub.test
+E2E_PASSWORD=...
+E2E_MASTER_PASSWORD=...
+```
+
+El usuario de prueba debe existir en Supabase con el email confirmado (se creó via seed SQL, no via registro). La primera corrida inicializa su vault con `E2E_MASTER_PASSWORD`; las siguientes solo lo desbloquean. Cubre: login OK, login con password incorrecta, desbloqueo del vault y creación de una credencial verificando que aparece descifrada en la lista.
 
 ## Funcionalidades
 

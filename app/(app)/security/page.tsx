@@ -32,13 +32,16 @@ function SecurityInner() {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  async function reload() {
-    setError(null);
-    try {
-      setFactors(await listVerifiedTotpFactors());
-    } catch (err) {
-      setError(errorMessage(err, "Error cargando factores"));
-    }
+  // setState solo dentro de callbacks del Promise (no sincrono en el effect):
+  // requisito de react-hooks/set-state-in-effect.
+  function reload() {
+    return listVerifiedTotpFactors().then(
+      (list) => {
+        setFactors(list);
+        setError(null);
+      },
+      (err: unknown) => setError(errorMessage(err, "Error cargando factores")),
+    );
   }
 
   useEffect(() => {

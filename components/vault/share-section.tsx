@@ -27,12 +27,13 @@ export function ShareSection({ itemId }: { itemId: string }) {
   const [ok, setOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function reload() {
-    try {
-      setShares(await listGivenShares(itemId));
-    } catch (err) {
-      setError(errorMessage(err, "Error cargando shares"));
-    }
+  // setState solo dentro de callbacks del Promise (no sincrono en el effect):
+  // requisito de react-hooks/set-state-in-effect.
+  function reload() {
+    return listGivenShares(itemId).then(
+      (list) => setShares(list),
+      (err: unknown) => setError(errorMessage(err, "Error cargando shares")),
+    );
   }
 
   useEffect(() => {

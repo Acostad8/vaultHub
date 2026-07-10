@@ -34,13 +34,16 @@ function SharedInner() {
   const [error, setError] = useState<string | null>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
 
-  async function reload() {
-    setError(null);
-    try {
-      setShares(await listReceivedSharesDecrypted());
-    } catch (err) {
-      setError(errorMessage(err, "Error cargando compartidos"));
-    }
+  // setState solo dentro de callbacks del Promise (no sincrono en el effect):
+  // requisito de react-hooks/set-state-in-effect.
+  function reload() {
+    return listReceivedSharesDecrypted().then(
+      (list) => {
+        setShares(list);
+        setError(null);
+      },
+      (err: unknown) => setError(errorMessage(err, "Error cargando compartidos")),
+    );
   }
 
   useEffect(() => {

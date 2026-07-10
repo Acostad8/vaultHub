@@ -560,3 +560,37 @@ Los items restantes de Fase 8 (dark mode, a11y, E2E, diagramas de arquitectura y
 - ✅ `npm run build` — 23 rutas OK.
 
 ---
+
+## Fase 8 — Pruebas E2E con Playwright (CIERRE FINAL) ✅
+
+**Fecha:** 2026-07-09
+
+### Qué se implementó
+
+- **Playwright + Chromium** (`@playwright/test`, solo Chromium por decisión del usuario, ~150MB).
+- **Usuario de prueba** `e2e@vaulthub.test` seeded via SQL directo (insert en `auth.users` + `auth.identities` con email confirmado) — el registro normal exige verificación por email, no automatizable. El trigger `on_auth_user_created` creó el profile automáticamente.
+- **`playwright.config.ts`** — puerto 3001 (3000 lo ocupa otro dev server local), `webServer` con `reuseExistingServer`, carga de `.env.e2e` sin dependencia de dotenv, 1 worker (tests comparten usuario/vault).
+- **`.env.e2e`** (gitignored via `.env*`) — `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_MASTER_PASSWORD`.
+- **4 tests en `e2e/vault.spec.ts`**: login OK, login con password incorrecta (error visible, no entra), desbloqueo del vault (setup en primera corrida, unlock en siguientes), crear credencial y verla descifrada en la lista.
+- **Script** `npm run test:e2e`; `e2e/**` excluido de Vitest; `test-results/` y `playwright-report/` en `.gitignore`; sección E2E en README.
+
+### Gotchas encontradas (documentados en helpers/spec)
+
+- `page.goto("/vault/new")` recarga la página → Zustand (master key en memoria) se resetea → redirect a `/unlock`. Solución: navegación client-side con el link "Nuevo item".
+- El `router.refresh()` posterior al unlock puede resolver tarde y pisar una navegación posterior (rebote a `/`). Solución: `waitForLoadState("networkidle")` tras el unlock.
+- El botón "Crear" se re-monta con re-renders del form (watch de RHF) y el click de Playwright fallaba con "element detached". Solución: submit via Enter en un input.
+
+### Fix de lint aparejado
+
+`react-hooks/set-state-in-effect` (React Compiler) marcaba error en 4 `reload()` llamados desde effects (`/devices`, `/security`, `/shared`, `share-section`): setState síncrono dentro del effect. Refactor: setState solo dentro de callbacks `.then()` del Promise. Sin cambio de comportamiento observable.
+
+### Verificación
+
+- ✅ `npx playwright test` — 4/4, estable en 3 corridas consecutivas (~20s por corrida).
+- ✅ `npm run lint` — 0 errores (2 warnings preexistentes de RHF `watch()`).
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npx vitest run` — 104/104.
+
+Con esto, **todas las casillas de plan.md quedan marcadas**. Pendientes fuera del plan: Google OAuth (DECISIONS_NEEDED #2) y auditoría WCAG formal con herramienta.
+
+---
