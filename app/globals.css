@@ -125,6 +125,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Tailwind v4 dejo de poner cursor pointer en botones (default nativo).
+     Restaurar comportamiento v3: mano en todo control clickeable habilitado. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  select:not(:disabled),
+  label[for] {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv11", "ss01";
