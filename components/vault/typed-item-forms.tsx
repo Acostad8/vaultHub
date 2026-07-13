@@ -125,7 +125,7 @@ function ItemFormWrapper<TInput extends FieldValues, TPayload extends VaultItemP
       }
       await assignTagsToItem(itemId, tagIds);
       toast.success(mode === "create" ? "Item creado" : "Cambios guardados");
-      router.push("/");
+      router.push("/vault");
       router.refresh();
     } catch (err) {
       setServerError(errorMessage(err, "Error guardando"));

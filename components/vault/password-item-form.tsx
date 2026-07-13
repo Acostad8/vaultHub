@@ -130,7 +130,7 @@ export function PasswordItemForm({ mode, existing }: Props) {
       }
       await assignTagsToItem(itemId, tagIds);
       toast.success(mode === "create" ? "Item creado" : "Cambios guardados");
-      router.push("/");
+      router.push("/vault");
       router.refresh();
     } catch (err) {
       setServerError(errorMessage(err, "Error guardando"));

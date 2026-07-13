@@ -24,7 +24,7 @@ export default function UnlockPage() {
 
   useEffect(() => {
     if (isUnlocked) {
-      router.replace("/");
+      router.replace("/vault");
       return;
     }
     useProfileCache
@@ -50,7 +50,7 @@ export default function UnlockPage() {
     setServerError(null);
     try {
       await unlockVault(values.masterPassword);
-      router.push("/");
+      router.push("/vault");
       router.refresh();
     } catch (err) {
       setServerError(errorMessage(err, "Error al desbloquear"));

@@ -23,7 +23,7 @@ export async function login(page: Page) {
 // El vault del usuario e2e se inicializa la primera vez que corren los tests
 // (setup-vault); en corridas posteriores solo se desbloquea (unlock).
 export async function unlockVault(page: Page) {
-  await page.goto("/");
+  await page.goto("/vault");
   await page.waitForURL(/\/(setup-vault|unlock)/, { timeout: 30_000 });
 
   if (page.url().includes("setup-vault")) {
@@ -37,8 +37,8 @@ export async function unlockVault(page: Page) {
   }
 
   // PBKDF2 con 600k iteraciones tarda unos segundos en derivar la clave.
-  await page.waitForURL((url) => url.pathname === "/", { timeout: 60_000 });
+  await page.waitForURL((url) => url.pathname === "/vault", { timeout: 60_000 });
   // El unlock dispara router.refresh(); si navegamos antes de que termine,
-  // el refresh pendiente de "/" puede pisar la navegacion a otra ruta.
+  // el refresh pendiente de "/vault" puede pisar la navegacion a otra ruta.
   await page.waitForLoadState("networkidle");
 }

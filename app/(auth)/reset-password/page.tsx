@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
       await updateAccountPassword(values);
       setDone(true);
       setTimeout(() => {
-        router.push("/");
+        router.push("/vault");
         router.refresh();
       }, 1500);
     } catch (err) {

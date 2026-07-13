@@ -57,7 +57,7 @@ export default function SetupVaultPage() {
     setServerError(null);
     try {
       await setupVault(values.masterPassword);
-      router.push("/");
+      router.push("/vault");
       router.refresh();
     } catch (err) {
       setServerError(errorMessage(err, "Error configurando el vault"));

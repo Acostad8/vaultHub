@@ -37,7 +37,7 @@ export function LoginForm() {
     setServerError(null);
     try {
       await signInWithPassword(values);
-      const next = nextParam ?? "/";
+      const next = nextParam ?? "/vault";
       // 2FA: si la cuenta tiene TOTP y este dispositivo no es confiable,
       // pedir el codigo antes de entrar.
       const { required } = await mfaChallengeRequired();

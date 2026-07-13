@@ -36,7 +36,7 @@ export default function RegisterPage() {
       if (needsEmailConfirmation) {
         router.push(`/check-email?email=${encodeURIComponent(values.email)}`);
       } else {
-        router.push("/");
+        router.push("/vault");
         router.refresh();
       }
     } catch (err) {

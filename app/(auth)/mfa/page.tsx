@@ -13,7 +13,7 @@ import { isCurrentDeviceTrusted, mfaChallengeRequired, verifyMfaChallenge } from
 function MfaInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextParam = searchParams.get("next") ?? "/";
+  const nextParam = searchParams.get("next") ?? "/vault";
 
   const [factorId, setFactorId] = useState<string | null>(null);
   const [code, setCode] = useState("");

@@ -12,7 +12,7 @@ test("login con email/password entra al area protegida", async ({ page }) => {
   await login(page);
   await expect(page).not.toHaveURL(/\/login/);
   // Sin master password el vault sigue bloqueado: gate manda a unlock/setup.
-  await page.goto("/");
+  await page.goto("/vault");
   await page.waitForURL(/\/(setup-vault|unlock)/);
 });
 
@@ -30,7 +30,7 @@ test("login con password incorrecta muestra error y no entra", async ({ page }) 
 test("desbloqueo del vault con master password", async ({ page }) => {
   await login(page);
   await unlockVault(page);
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/vault");
   await expect(page.getByRole("heading", { name: "Tu vault" })).toBeVisible();
 });
 
@@ -55,7 +55,7 @@ test("crear credencial y verla en la lista", async ({ page }) => {
   // dispara el mismo submit del form de forma estable.
   await page.press("#password", "Enter");
 
-  await page.waitForURL((url) => url.pathname === "/", { timeout: 30_000 });
+  await page.waitForURL((url) => url.pathname === "/vault", { timeout: 30_000 });
   // El nombre viaja cifrado al servidor y se descifra en memoria al listar.
   await expect(page.getByText(itemName)).toBeVisible({ timeout: 15_000 });
 });

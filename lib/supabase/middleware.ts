@@ -7,6 +7,7 @@ import { supabaseFetch } from "./fetch";
 
 // Rutas publicas — accesibles sin sesion. Todo lo demas exige login.
 const PUBLIC_ROUTES = new Set([
+  "/",
   "/login",
   "/register",
   "/forgot-password",
@@ -14,8 +15,8 @@ const PUBLIC_ROUTES = new Set([
   "/check-email",
 ]);
 
-// Rutas donde una sesion activa nos redirige a home (evita ver login estando logueado).
-const AUTH_ONLY_ROUTES = new Set(["/login", "/register", "/forgot-password"]);
+// Rutas donde una sesion activa nos redirige al vault (evita ver landing/login estando logueado).
+const AUTH_ONLY_ROUTES = new Set(["/", "/login", "/register", "/forgot-password"]);
 
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true;
@@ -65,10 +66,10 @@ export async function updateSupabaseSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Con sesion + ruta auth-only -> home
+  // Con sesion + ruta auth-only -> vault
   if (user && AUTH_ONLY_ROUTES.has(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/vault";
     url.search = "";
     return NextResponse.redirect(url);
   }
