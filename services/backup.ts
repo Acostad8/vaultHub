@@ -23,6 +23,7 @@ import { listDecryptedItems, createItem } from "@/services/vault-items";
 import { listDecryptedCategories, createCategory } from "@/services/categories";
 import { listDecryptedTags, createTag, assignTagsToItem, fetchItemTagsMap } from "@/services/tags";
 import { logAudit } from "@/services/audit";
+import { markBackupNow } from "@/repositories/profile";
 import type { VaultItemDecrypted, VaultItemType, VaultItemPayload } from "@/types/vault";
 
 export interface BackupItem {
@@ -89,6 +90,8 @@ export async function exportBackup(backupPassword: string): Promise<EncryptedBac
   const envelope = await encryptPayload(key, plaintext);
 
   void logAudit("export", { items: items.length });
+  // Fire-and-forget: si falla, no rompe el export (el usuario sí lo tiene).
+  void markBackupNow().catch(() => undefined);
 
   return {
     version: 1,

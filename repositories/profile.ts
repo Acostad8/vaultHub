@@ -13,8 +13,30 @@ export interface ProfileRow {
   verifier_ciphertext: string | null;
   verifier_iv: string | null;
   vault_initialized_at: string | null;
+  auto_backup_days: number;
+  last_backup_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type AutoBackupDays = 0 | 1 | 7 | 30;
+
+export async function updateAutoBackupPreference(days: AutoBackupDays): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ auto_backup_days: days })
+    .eq("id", (await supabase.auth.getUser()).data.user!.id);
+  if (error) throw error;
+}
+
+export async function markBackupNow(): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ last_backup_at: new Date().toISOString() })
+    .eq("id", (await supabase.auth.getUser()).data.user!.id);
+  if (error) throw error;
 }
 
 export async function fetchMyProfile(): Promise<ProfileRow> {

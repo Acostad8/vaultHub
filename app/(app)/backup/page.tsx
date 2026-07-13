@@ -19,6 +19,8 @@ import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/vault/page-header";
 import { VaultGate } from "@/components/vault/vault-gate";
+import { AutoBackupToggle } from "@/components/vault/auto-backup-toggle";
+import { ImportWizard } from "@/components/vault/import-wizard";
 import {
   downloadBackup,
   exportBackup,
@@ -142,6 +144,10 @@ function BackupInner() {
         title="Backup"
         description="Exporta e importa tu vault en JSON cifrado con PBKDF2 + AES-256-GCM."
       />
+
+      <div className="mb-5">
+        <AutoBackupToggle />
+      </div>
 
       {/* Export */}
       <Card className="p-5 space-y-4">
@@ -286,7 +292,7 @@ function BackupInner() {
 
         {preview ? (
           <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div>
                 <h4 className="text-sm font-semibold">Contenido del backup</h4>
                 <p className="text-xs text-zinc-500">
@@ -350,6 +356,8 @@ function BackupInner() {
           </div>
         ) : null}
       </Card>
+
+      <ImportWizard />
     </div>
   );
 }
