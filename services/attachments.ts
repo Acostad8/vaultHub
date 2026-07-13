@@ -22,6 +22,8 @@ export interface AttachmentDecrypted {
   row: AttachmentRow;
   filename: string;
   size_bytes: number;
+  // null si la fila es previa a la migración de mime (2026-07-13).
+  mime: string | null;
   created_at: string;
 }
 
@@ -40,6 +42,8 @@ export async function uploadAttachment(
   const fileBytes = new Uint8Array(await file.arrayBuffer());
   const fileEnvelope = await encryptBytes(key, fileBytes);
   const nameEnvelope = await encryptBytes(key, textEncoder.encode(file.name));
+  const rawMime = file.type || "application/octet-stream";
+  const mimeEnvelope = await encryptBytes(key, textEncoder.encode(rawMime));
 
   const row = await insertAttachment({
     vault_item_id: vaultItemId,
@@ -48,10 +52,18 @@ export async function uploadAttachment(
     file_iv: fileEnvelope.iv,
     size_bytes: file.size,
     encryptedBlob: base64ToBytes(fileEnvelope.ciphertext),
+    mime_ciphertext: mimeEnvelope.ciphertext,
+    mime_iv: mimeEnvelope.iv,
   });
 
   void logAudit("item_update", { attachment: "upload", item_id: vaultItemId });
-  return { row, filename: file.name, size_bytes: file.size, created_at: row.created_at };
+  return {
+    row,
+    filename: file.name,
+    size_bytes: file.size,
+    mime: rawMime,
+    created_at: row.created_at,
+  };
 }
 
 export async function listDecryptedAttachments(
@@ -65,10 +77,19 @@ export async function listDecryptedAttachments(
         ciphertext: row.name_ciphertext,
         iv: row.name_iv,
       });
+      let mime: string | null = null;
+      if (row.mime_ciphertext && row.mime_iv) {
+        const mimeBytes = await decryptBytes(key, {
+          ciphertext: row.mime_ciphertext,
+          iv: row.mime_iv,
+        });
+        mime = textDecoder.decode(mimeBytes);
+      }
       return {
         row,
         filename: textDecoder.decode(nameBytes),
         size_bytes: row.size_bytes,
+        mime,
         created_at: row.created_at,
       };
     }),

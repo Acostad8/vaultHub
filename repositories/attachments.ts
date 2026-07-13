@@ -10,6 +10,9 @@ export interface AttachmentRow {
   name_iv: string;
   file_iv: string;
   size_bytes: number;
+  // Nullable — filas creadas antes de la migración 20260713000002 no lo tienen.
+  mime_ciphertext: string | null;
+  mime_iv: string | null;
   created_at: string;
 }
 
@@ -24,6 +27,8 @@ export async function insertAttachment(input: {
   file_iv: string;
   size_bytes: number;
   encryptedBlob: Uint8Array;
+  mime_ciphertext?: string | null;
+  mime_iv?: string | null;
 }): Promise<AttachmentRow> {
   const supabase = createSupabaseBrowserClient();
   const userRes = await supabase.auth.getUser();
@@ -39,6 +44,8 @@ export async function insertAttachment(input: {
       name_iv: input.name_iv,
       file_iv: input.file_iv,
       size_bytes: input.size_bytes,
+      mime_ciphertext: input.mime_ciphertext ?? null,
+      mime_iv: input.mime_iv ?? null,
     })
     .select()
     .single();
