@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Filter,
   IdCard,
   Inbox,
   Key,
@@ -39,7 +40,7 @@ import { fetchItemTagsMap, listDecryptedTags, type DecryptedTag } from "@/servic
 import { analyzeVault } from "@/services/vault-analysis";
 import { useVaultCache } from "@/store/vault-cache";
 import { matchPlatform } from "@/constants/platforms";
-import type { VaultItemDecrypted, VaultItemType } from "@/types/vault";
+import type { VaultItemType } from "@/types/vault";
 import { DashboardSummary } from "./dashboard-summary";
 import { PlatformIcon } from "./platform-icon";
 
@@ -56,42 +57,13 @@ const TYPE_META: Record<
   totp: { label: "TOTP", icon: ShieldCheck, accent: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
 };
 
-interface Filters {
-  query: string;
-  type: VaultItemType | "all";
-  categoryId: string | "all";
-  tagId: string | "all";
-  onlyFavorites: boolean;
-}
-
-function matchesFilters(
-  item: VaultItemDecrypted,
-  tagIdsForItem: string[],
-  filters: Filters,
-): boolean {
-  if (filters.type !== "all" && item.item_type !== filters.type) return false;
-  if (filters.categoryId !== "all" && item.category_id !== filters.categoryId) return false;
-  if (filters.tagId !== "all" && !tagIdsForItem.includes(filters.tagId)) return false;
-  if (filters.onlyFavorites && !item.is_favorite) return false;
-
-  if (filters.query.trim() === "") return true;
-  const needle = filters.query.trim().toLowerCase();
-  const p = item.payload as {
-    name?: string;
-    username?: string;
-    url?: string;
-    body?: string;
-    issuer?: string;
-    cardholder?: string;
-    full_name?: string;
-    notes?: string;
-  };
-  const hay = [p.name, p.username, p.url, p.body, p.issuer, p.cardholder, p.full_name, p.notes]
-    .filter((v): v is string => typeof v === "string")
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
-}
+import {
+  EMPTY_FILTERS,
+  countAdvancedActive,
+  hasAnyActiveFilter,
+  matchesFilters,
+  type Filters,
+} from "./vault-list-filters";
 
 export function VaultList() {
   const confirm = useConfirm();
@@ -114,13 +86,10 @@ export function VaultList() {
   const [error, setError] = useState<string | null>(null);
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Filters>({
-    query: "",
-    type: "all",
-    categoryId: "all",
-    tagId: "all",
-    onlyFavorites: false,
-  });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedActiveCount = countAdvancedActive(filters);
+  const hasAnyFilter = hasAnyActiveFilter(filters);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,18 +236,25 @@ export function VaultList() {
               </option>
             ))}
           </select>
-          <select
-            value={filters.tagId}
-            onChange={(e) => setFilters((f) => ({ ...f, tagId: e.target.value }))}
-            className="rounded-md border border-zinc-200 bg-transparent px-2 py-1.5 dark:border-zinc-800"
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((v) => !v)}
+            aria-expanded={advancedOpen}
+            aria-controls="advanced-filters"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+              advancedActiveCount > 0
+                ? "border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+                : "border-zinc-200 dark:border-zinc-800"
+            }`}
           >
-            <option value="all">Todos los tags</option>
-            {tags.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            <Filter className="size-3.5" />
+            Avanzado
+            {advancedActiveCount > 0 ? (
+              <span className="ml-0.5 rounded-full bg-indigo-500 px-1.5 text-[10px] leading-4 text-white">
+                {advancedActiveCount}
+              </span>
+            ) : null}
+          </button>
           <label className="ml-auto flex items-center gap-1.5">
             <input
               type="checkbox"
@@ -289,10 +265,91 @@ export function VaultList() {
             />
             Solo favoritos
           </label>
+          {hasAnyFilter ? (
+            <button
+              type="button"
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="rounded-md border border-zinc-200 px-2 py-1.5 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Limpiar todos los filtros"
+            >
+              Limpiar
+            </button>
+          ) : null}
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
             {filtered.length} / {items.length}
           </span>
         </div>
+
+        {advancedOpen ? (
+          <div
+            id="advanced-filters"
+            className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50/50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-900/40 sm:grid-cols-2"
+          >
+            <div className="space-y-1.5 sm:col-span-2">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                Tags (todos deben coincidir)
+              </span>
+              {tags.length === 0 ? (
+                <p className="text-zinc-500">Sin tags creados todavia.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((t) => {
+                    const active = filters.tagIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() =>
+                          setFilters((f) => ({
+                            ...f,
+                            tagIds: active
+                              ? f.tagIds.filter((id) => id !== t.id)
+                              : [...f.tagIds, t.id],
+                          }))
+                        }
+                        aria-pressed={active}
+                        className={`rounded-full border px-2 py-0.5 transition-colors ${
+                          active
+                            ? "border-indigo-500 bg-indigo-500 text-white"
+                            : "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                        }`}
+                        style={
+                          active && t.color
+                            ? { backgroundColor: t.color, borderColor: t.color }
+                            : undefined
+                        }
+                      >
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <label className="space-y-1">
+              <span className="block font-medium text-zinc-700 dark:text-zinc-300">
+                Actualizado desde
+              </span>
+              <input
+                type="date"
+                value={filters.updatedFrom}
+                onChange={(e) => setFilters((f) => ({ ...f, updatedFrom: e.target.value }))}
+                className="w-full rounded-md border border-zinc-200 bg-transparent px-2 py-1.5 dark:border-zinc-800"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="block font-medium text-zinc-700 dark:text-zinc-300">
+                Actualizado hasta
+              </span>
+              <input
+                type="date"
+                value={filters.updatedTo}
+                onChange={(e) => setFilters((f) => ({ ...f, updatedTo: e.target.value }))}
+                className="w-full rounded-md border border-zinc-200 bg-transparent px-2 py-1.5 dark:border-zinc-800"
+              />
+            </label>
+          </div>
+        ) : null}
       </div>
 
       {filtered.length === 0 ? (

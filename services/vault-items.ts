@@ -151,6 +151,19 @@ export interface DecryptedHistoryEntry {
   payload: VaultItemPayload;
 }
 
+// Restaurar una versión histórica.
+// - El trigger BEFORE UPDATE (`snapshot_vault_item_history`) archiva
+//   automáticamente el payload actual cuando cambia. Por eso NO snapshotamos
+//   manualmente: sería duplicado.
+// - Idempotente: llamar dos veces con el mismo historyId deja el item en la
+//   misma versión (aunque cada llamada añade una entrada al historial).
+export async function restoreHistoryVersion(params: {
+  vaultItemId: string;
+  historyPayload: VaultItemPayload;
+}): Promise<VaultItemDecrypted> {
+  return editItem({ id: params.vaultItemId, payload: params.historyPayload });
+}
+
 export async function listDecryptedPasswordHistory(vaultItemId: string): Promise<DecryptedHistoryEntry[]> {
   const key = useVaultLock.getState().requireKey();
   const rows = await listPasswordHistory(vaultItemId);

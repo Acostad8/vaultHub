@@ -3,7 +3,22 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Folder, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Folder, Plus } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 import { toast } from "sonner";
 
@@ -12,16 +27,17 @@ import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker";
-import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { VaultGate } from "@/components/vault/vault-gate";
 import { PageHeader } from "@/components/vault/page-header";
+import { SortableCategoryItem } from "@/components/vault/sortable-category-item";
 import {
   createCategory,
   listDecryptedCategories,
   removeCategory,
   renameCategory,
+  reorderCategories,
   type DecryptedCategory,
 } from "@/services/categories";
 import { categorySchema, type CategoryInput } from "@/validators/vault";
@@ -33,6 +49,13 @@ function CategoriesInner() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [color, setColor] = useState("");
+  // Copia local del orden previo — para rollback si el batch update falla.
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const {
     register,
@@ -99,11 +122,42 @@ function CategoriesInner() {
     }
   }
 
+  async function persistOrder(previous: DecryptedCategory[], next: DecryptedCategory[]) {
+    const ids = next.map((c) => c.id);
+    setPendingOrder(previous.map((c) => c.id));
+    try {
+      await reorderCategories(ids);
+      setPendingOrder(null);
+    } catch (err) {
+      setItems(previous);
+      setPendingOrder(null);
+      toast.error(errorMessage(err, "Error reordenando"));
+    }
+  }
+
+  function moveByIndex(from: number, to: number) {
+    if (!items) return;
+    if (from === to || to < 0 || to >= items.length) return;
+    const next = arrayMove(items, from, to).map((c, idx) => ({ ...c, sort_order: idx }));
+    const prev = items;
+    setItems(next);
+    void persistOrder(prev, next);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !items) return;
+    const from = items.findIndex((c) => c.id === active.id);
+    const to = items.findIndex((c) => c.id === over.id);
+    if (from < 0 || to < 0) return;
+    moveByIndex(from, to);
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <PageHeader
         title="Categorias"
-        description="Organiza tus items en carpetas. El nombre se cifra localmente."
+        description="Organiza tus items en carpetas. Arrastra o usa ↑↓ para reordenar. El nombre se cifra localmente."
       />
 
       <Card className="mb-4 p-5">
@@ -145,70 +199,38 @@ function CategoriesInner() {
         </Card>
       ) : null}
 
-      <ul className="space-y-2">
-        {items?.map((cat) => (
-          <li key={cat.id}>
-            <Card className="p-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: cat.color ?? "#e4e4e7" }}
-                >
-                  <Folder className="size-4 text-white/95" />
-                </div>
-
-                {editingId === cat.id ? (
-                  <>
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1"
-                      autoFocus
-                    />
-                    <Button size="sm" onClick={() => handleRename(cat.id)} className="gap-1">
-                      <Check className="size-3.5" />
-                      Guardar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingId(null);
-                        setEditName("");
-                      }}
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex-1 text-sm font-medium">{cat.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(cat.id);
-                        setEditName(cat.name);
-                      }}
-                      className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                      title="Renombrar"
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(cat.id)}
-                      className="rounded-md p-2 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                      title="Borrar"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      {items && items.length > 0 ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <ul
+              className="space-y-2"
+              aria-label="Lista de categorias reordenables"
+              aria-busy={pendingOrder !== null || undefined}
+            >
+              {items.map((cat, index) => (
+                <SortableCategoryItem
+                  key={cat.id}
+                  category={cat}
+                  editing={editingId === cat.id}
+                  editName={editName}
+                  onEditNameChange={setEditName}
+                  onStartEdit={() => {
+                    setEditingId(cat.id);
+                    setEditName(cat.name);
+                  }}
+                  onCancelEdit={() => {
+                    setEditingId(null);
+                    setEditName("");
+                  }}
+                  onSaveEdit={() => handleRename(cat.id)}
+                  onDelete={() => handleDelete(cat.id)}
+                  onKeyboardMove={(delta) => moveByIndex(index, index + delta)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      ) : null}
     </div>
   );
 }

@@ -82,3 +82,18 @@ export async function deleteCategory(id: string): Promise<void> {
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) throw error;
 }
+
+// Batch persist de sort_order tras drag & drop. Uso RPC-like: N updates
+// paralelos sobre el mismo user, cada uno con RLS check. Los ids se pasan en
+// el orden final deseado y el índice se convierte en sort_order.
+export async function updateCategoryOrder(orderedIds: string[]): Promise<void> {
+  if (orderedIds.length === 0) return;
+  const supabase = createSupabaseBrowserClient();
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("categories").update({ sort_order: index }).eq("id", id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}

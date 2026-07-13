@@ -4,6 +4,7 @@ import {
   insertCategory,
   listCategories,
   updateCategory,
+  updateCategoryOrder,
   type CategoryRow,
 } from "@/repositories/categories";
 import { useVaultLock } from "@/store/vault-lock";
@@ -81,5 +82,10 @@ export async function renameCategory(id: string, name: string): Promise<Decrypte
 
 export async function removeCategory(id: string): Promise<void> {
   await deleteCategory(id);
+  useVaultCache.getState().invalidateCategories();
+}
+
+export async function reorderCategories(orderedIds: string[]): Promise<void> {
+  await updateCategoryOrder(orderedIds);
   useVaultCache.getState().invalidateCategories();
 }
