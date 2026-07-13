@@ -12,9 +12,15 @@ import type { NextConfig } from "next";
 //     script-self, style-self+inline (Tailwind runtime), connect a Supabase +
 //     HIBP, sin frames, sin object.
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://*.supabase.co";
+// Turbopack / React dev requieren eval() para HMR, sourcemaps y reconstrucción
+// de callstacks. En prod React nunca usa eval, así que solo lo permitimos en dev.
+const SCRIPT_SRC =
+  process.env.NODE_ENV === "production"
+    ? "script-src 'self' 'unsafe-inline'"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  SCRIPT_SRC,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",

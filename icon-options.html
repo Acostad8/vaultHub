@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>VaultHub — 10 opciones de icono (terminal / cripto)</title>
+<style>
+  :root { --em: #34d399; --em-dim: #10b981; --em-soft: rgba(52,211,153,.15); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2rem;
+    background: #000;
+    color: #d1fae5;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  h1 { font-size: 1rem; font-weight: 600; margin: 0 0 .3rem; color: #a7f3d0; }
+  h1 .cursor { color: var(--em); animation: blink 1s step-end infinite; }
+  .sub { font-size: .75rem; color: rgba(209,250,229,.5); margin-bottom: 2rem; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    border: 1px solid rgba(52,211,153,.18);
+    background: rgba(0,0,0,.6);
+    border-radius: 12px;
+    padding: 1.1rem;
+    transition: border-color .2s, background .2s;
+  }
+  .card:hover { border-color: rgba(52,211,153,.45); background: rgba(0,0,0,.85); }
+  .card h2 { font-size: .8rem; margin: 0 0 .25rem; color: #a7f3d0; letter-spacing: .02em; }
+  .card .num { color: var(--em); }
+  .card .desc { font-size: .7rem; color: rgba(209,250,229,.5); margin: 0 0 .9rem; line-height: 1.4; }
+
+  .row { display: flex; gap: .8rem; align-items: center; margin-top: .5rem; }
+  .box {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #000;
+    border: 1px solid rgba(52,211,153,.2);
+    border-radius: 8px;
+  }
+  .big { width: 88px; height: 88px; }
+  .mid { width: 40px; height: 40px; }
+  .fav { width: 22px; height: 22px; }
+  .label { font-size: .6rem; color: rgba(52,211,153,.5); text-transform: uppercase; letter-spacing: .1em; }
+  .stack { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+
+  svg { display: block; }
+  .glow { filter: drop-shadow(0 0 4px rgba(52,211,153,.7)); }
+
+  footer { margin-top: 2rem; font-size: .7rem; color: rgba(209,250,229,.4); }
+</style>
+</head>
+<body>
+
+<h1>vaulthub<span class="cursor">_</span> · 10 opciones de icono</h1>
+<p class="sub">&gt; render.icons · 88px · 40px · 22px (favicon) · palette #34d399 sobre negro</p>
+
+<div class="grid">
+
+  <!-- 1. Bracket-lock -->
+  <div class="card">
+    <h2><span class="num">01</span> bracket-lock</h2>
+    <p class="desc">[▮] bracket cuadrado tipo terminal + barra/pixel dentro. Minimal, super legible en favicon.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="square">
+            <path d="M18 12 L10 12 L10 52 L18 52" />
+            <path d="M46 12 L54 12 L54 52 L46 52" />
+          </g>
+          <rect x="28" y="24" width="8" height="16" fill="#34d399" />
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="square">
+            <path d="M18 12 L10 12 L10 52 L18 52" />
+            <path d="M46 12 L54 12 L54 52 L46 52" />
+          </g>
+          <rect x="28" y="24" width="8" height="16" fill="#34d399" />
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="7" stroke-linecap="square">
+            <path d="M18 12 L10 12 L10 52 L18 52" />
+            <path d="M46 12 L54 12 L54 52 L46 52" />
+          </g>
+          <rect x="28" y="24" width="8" height="16" fill="#34d399" />
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Cursor + shackle -->
+  <div class="card">
+    <h2><span class="num">02</span> cursor + shackle</h2>
+    <p class="desc">Cursor ▮ con arco de candado encima. Prompt + vault en un glifo.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <path d="M20 30 V22 a12 12 0 0 1 24 0 V30" fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round"/>
+          <rect x="18" y="30" width="28" height="22" fill="#34d399" />
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <path d="M20 30 V22 a12 12 0 0 1 24 0 V30" fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round"/>
+          <rect x="18" y="30" width="28" height="22" fill="#34d399" />
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <path d="M20 30 V22 a12 12 0 0 1 24 0 V30" fill="none" stroke="#34d399" stroke-width="7" stroke-linecap="round"/>
+          <rect x="18" y="30" width="28" height="22" fill="#34d399" />
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. V circuito -->
+  <div class="card">
+    <h2><span class="num">03</span> V-circuito</h2>
+    <p class="desc">Letra V con trazos tipo pistas de PCB / hex nibbles. Branding único.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 12 L32 52 L54 12" />
+            <path d="M18 12 L10 12" />
+            <path d="M46 12 L54 12" />
+            <circle cx="10" cy="12" r="3" fill="#34d399"/>
+            <circle cx="54" cy="12" r="3" fill="#34d399"/>
+            <path d="M22 22 L28 22" />
+            <path d="M42 22 L36 22" />
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 12 L32 52 L54 12" />
+            <circle cx="10" cy="12" r="4" fill="#34d399"/>
+            <circle cx="54" cy="12" r="4" fill="#34d399"/>
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 12 L32 52 L54 12" />
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Hash-lock -->
+  <div class="card">
+    <h2><span class="num">04</span> hash-lock</h2>
+    <p class="desc"># con arco de candado. Alude a SHA / hashing / zero-knowledge.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round">
+            <path d="M18 20 V54" />
+            <path d="M32 20 V54" />
+            <path d="M46 20 V54" />
+            <path d="M10 32 H54" />
+            <path d="M10 44 H54" />
+            <path d="M14 20 V14 a18 18 0 0 1 36 0 V20" />
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round">
+            <path d="M22 20 V54" />
+            <path d="M42 20 V54" />
+            <path d="M14 30 H50" />
+            <path d="M14 44 H50" />
+            <path d="M14 20 V14 a18 18 0 0 1 36 0 V20" />
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round">
+            <path d="M22 24 V52" />
+            <path d="M42 24 V52" />
+            <path d="M14 34 H50" />
+            <path d="M14 46 H50" />
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Llave 8-bit -->
+  <div class="card">
+    <h2><span class="num">05</span> llave 8-bit</h2>
+    <p class="desc">Llave dentada en píxeles chunky. CRT vibe puro, casa con matrix rain.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow" shape-rendering="crispEdges">
+          <g fill="#34d399">
+            <rect x="8" y="24" width="8" height="8"/>
+            <rect x="8" y="32" width="8" height="8"/>
+            <rect x="16" y="16" width="8" height="8"/>
+            <rect x="16" y="40" width="8" height="8"/>
+            <rect x="24" y="16" width="8" height="8"/>
+            <rect x="24" y="40" width="8" height="8"/>
+            <rect x="32" y="24" width="8" height="8"/>
+            <rect x="32" y="32" width="8" height="8"/>
+            <rect x="40" y="28" width="16" height="4"/>
+            <rect x="44" y="32" width="4" height="8"/>
+            <rect x="52" y="32" width="4" height="8"/>
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64" shape-rendering="crispEdges">
+          <g fill="#34d399">
+            <rect x="8" y="24" width="8" height="8"/>
+            <rect x="8" y="32" width="8" height="8"/>
+            <rect x="16" y="16" width="8" height="8"/>
+            <rect x="16" y="40" width="8" height="8"/>
+            <rect x="24" y="16" width="8" height="8"/>
+            <rect x="24" y="40" width="8" height="8"/>
+            <rect x="32" y="24" width="8" height="8"/>
+            <rect x="32" y="32" width="8" height="8"/>
+            <rect x="40" y="28" width="16" height="4"/>
+            <rect x="44" y="32" width="4" height="8"/>
+            <rect x="52" y="32" width="4" height="8"/>
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64" shape-rendering="crispEdges">
+          <g fill="#34d399">
+            <rect x="8" y="24" width="16" height="16"/>
+            <rect x="24" y="28" width="24" height="8"/>
+            <rect x="40" y="36" width="4" height="8"/>
+            <rect x="48" y="36" width="4" height="8"/>
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Escudo hex -->
+  <div class="card">
+    <h2><span class="num">06</span> escudo hex</h2>
+    <p class="desc">Hexágono (nibble/byte) con "0x" dentro. Cripto sin caer en candado obvio.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <polygon points="32,6 56,20 56,44 32,58 8,44 8,20"
+                   fill="none" stroke="#34d399" stroke-width="4" stroke-linejoin="round"/>
+          <text x="32" y="38" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
+                font-size="16" font-weight="700" fill="#34d399">0x</text>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <polygon points="32,6 56,20 56,44 32,58 8,44 8,20"
+                   fill="none" stroke="#34d399" stroke-width="5" stroke-linejoin="round"/>
+          <text x="32" y="39" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
+                font-size="18" font-weight="700" fill="#34d399">0x</text>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <polygon points="32,6 56,20 56,44 32,58 8,44 8,20"
+                   fill="#34d399"/>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Prompt-lock -->
+  <div class="card">
+    <h2><span class="num">07</span> prompt-lock ($_)</h2>
+    <p class="desc">$ como arco del candado + _ como base. Shell + seguridad fusionados.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <text x="32" y="40" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
+                font-size="42" font-weight="700" fill="#34d399">$</text>
+          <rect x="14" y="46" width="36" height="6" fill="#34d399"/>
+          <rect x="26" y="52" width="12" height="4" fill="#34d399"/>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <text x="32" y="40" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
+                font-size="46" font-weight="700" fill="#34d399">$</text>
+          <rect x="14" y="46" width="36" height="6" fill="#34d399"/>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <text x="32" y="46" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
+                font-size="56" font-weight="700" fill="#34d399">$</text>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Ojo tachado -->
+  <div class="card">
+    <h2><span class="num">08</span> ojo tachado</h2>
+    <p class="desc">"Ni nosotros vemos". Literal zero-knowledge, menos cripto pero más concepto.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round">
+            <path d="M6 32 Q32 12 58 32 Q32 52 6 32 Z" />
+            <circle cx="32" cy="32" r="7" />
+            <path d="M12 12 L52 52" stroke-width="5" />
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round">
+            <path d="M6 32 Q32 12 58 32 Q32 52 6 32 Z" />
+            <circle cx="32" cy="32" r="7" />
+            <path d="M12 12 L52 52" stroke-width="6" />
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round">
+            <path d="M6 32 Q32 14 58 32 Q32 50 6 32 Z" />
+            <path d="M12 12 L52 52" />
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Bloques ciphertext -->
+  <div class="card">
+    <h2><span class="num">09</span> bloques ciphertext</h2>
+    <p class="desc">4 bloques AES cifrados, uno "roto"/desalineado. Abstracto pero muy técnico.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="#34d399">
+            <rect x="8"  y="8"  width="22" height="22" rx="3"/>
+            <rect x="34" y="10" width="22" height="22" rx="3" opacity=".65"/>
+            <rect x="10" y="36" width="22" height="22" rx="3" opacity=".8"/>
+          </g>
+          <g fill="none" stroke="#34d399" stroke-width="3" stroke-dasharray="4 3">
+            <rect x="36" y="38" width="22" height="22" rx="3"/>
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="#34d399">
+            <rect x="8"  y="8"  width="22" height="22"/>
+            <rect x="34" y="10" width="22" height="22" opacity=".6"/>
+            <rect x="10" y="36" width="22" height="22" opacity=".8"/>
+          </g>
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-dasharray="4 3">
+            <rect x="36" y="38" width="22" height="22"/>
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64" shape-rendering="crispEdges">
+          <g fill="#34d399">
+            <rect x="8"  y="8"  width="22" height="22"/>
+            <rect x="34" y="10" width="22" height="22"/>
+            <rect x="10" y="36" width="22" height="22"/>
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Fingerprint + brackets -->
+  <div class="card">
+    <h2><span class="num">10</span> fingerprint + brackets</h2>
+    <p class="desc">Huella dentro de [ ]. Une biometría/auto-bloqueo con look terminal.</p>
+    <div class="row">
+      <div class="stack">
+        <div class="box big"><svg width="72" height="72" viewBox="0 0 64 64" class="glow">
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="square">
+            <path d="M14 10 L8 10 L8 54 L14 54" />
+            <path d="M50 10 L56 10 L56 54 L50 54" />
+          </g>
+          <g fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round">
+            <path d="M22 40 Q22 24 32 24 Q42 24 42 40" />
+            <path d="M26 42 Q26 28 32 28 Q38 28 38 42" />
+            <path d="M30 44 Q30 32 32 32 Q34 32 34 44" />
+          </g>
+        </svg></div>
+        <span class="label">88</span>
+      </div>
+      <div class="stack">
+        <div class="box mid"><svg width="32" height="32" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="square">
+            <path d="M14 10 L8 10 L8 54 L14 54" />
+            <path d="M50 10 L56 10 L56 54 L50 54" />
+          </g>
+          <g fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round">
+            <path d="M22 40 Q22 24 32 24 Q42 24 42 40" />
+            <path d="M28 42 Q28 30 32 30 Q36 30 36 42" />
+          </g>
+        </svg></div>
+        <span class="label">40</span>
+      </div>
+      <div class="stack">
+        <div class="box fav"><svg width="16" height="16" viewBox="0 0 64 64">
+          <g fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round">
+            <path d="M18 44 Q18 20 32 20 Q46 20 46 44" />
+            <path d="M28 44 Q28 32 32 32 Q36 32 36 44" />
+          </g>
+        </svg></div>
+        <span class="label">16</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>&gt; abre este archivo en el navegador · click derecho en cada SVG → "Save image as" si te sirve alguno directo</footer>
+
+</body>
+</html>

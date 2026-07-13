@@ -52,12 +52,14 @@ function buildCells(): Cell[] {
 
 export function AsciiLock() {
   const cells = useMemo(() => buildCells(), []);
-  const [chars, setChars] = useState<string[]>(() =>
-    cells.map(() => randChar()),
-  );
+  // Init determinista para SSR: mismo output server/cliente evita hydration mismatch.
+  // Se randomiza en useEffect tras el mount.
+  const [chars, setChars] = useState<string[]>(() => cells.map(() => "0"));
   const frameRef = useRef(0);
 
   useEffect(() => {
+    setChars(cells.map(() => randChar()));
+
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
 
