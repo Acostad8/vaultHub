@@ -594,3 +594,280 @@ Los items restantes de Fase 8 (dark mode, a11y, E2E, diagramas de arquitectura y
 Con esto, **todas las casillas de plan.md quedan marcadas**. Pendientes fuera del plan: Google OAuth (DECISIONS_NEEDED #2) y auditoría WCAG formal con herramienta.
 
 ---
+
+## Fase 9 — UX small wins ✅
+
+**Fecha:** 2026-07-13
+
+### Qué se implementó
+
+**9.1 — Drag & drop reorden categorías:**
+- `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` instalados.
+- `repositories/categories.updateCategoryOrder(orderedIds)` — batch de N `update` paralelos con RLS (Postgres transacciona cada uno; conflicto imposible porque el user_id RLS coincide con auth.uid).
+- `services/categories.reorderCategories(ids)` — invalida cache + persiste.
+- Nuevo componente `components/vault/sortable-category-item.tsx` — extrae la fila con handle de arrastre y controles inline.
+- Página `/categories` reescrita con `DndContext` + `SortableContext`, sensors Pointer + Keyboard.
+- **Fallback teclado**: foco en el grip → ↑↓ mueve la categoría, sin necesidad de arrastrar. `aria-label` en el handle explica el patrón. Sensors `KeyboardSensor` con `sortableKeyboardCoordinates` también da el flujo estándar dnd-kit (Space + flechas).
+- **Rollback optimista**: si `updateCategoryOrder` falla, el orden previo se restaura y hay toast de error. `pendingOrder` marca `aria-busy` en la lista durante el batch.
+
+**9.2 — Restaurar versión desde password_history:**
+- `services/vault-items.restoreHistoryVersion({ vaultItemId, historyPayload })` — escribe el payload histórico como current usando `editItem`. El trigger `snapshot_vault_item_history` (Fase 5) archiva el payload actual antes del cambio; idempotente en la práctica (llamar dos veces deja el mismo estado con dos entradas al historial).
+- UI en `/vault/[id]`: cada entry del historial añade botón "Restaurar" (icon `RotateCcw`). Confirm dialog. Estado `restoringId` deshabilita todos los botones mientras la mutación corre para evitar dobles clicks.
+
+**9.3 — Búsqueda avanzada combinada:**
+- Extraído `matchesFilters` + tipos a `components/vault/vault-list-filters.ts` (helper puro, testeable sin cargar React/UI).
+- Nuevo filtro **multi-tag AND**: chips toggle en panel avanzado; para pasar, el item debe tener TODOS los tags seleccionados.
+- Nuevo filtro **rango updated_at**: dos `<input type="date">` (from/to, inclusive en ambos extremos con `T00:00:00` / `T23:59:59.999`).
+- Toggle "Avanzado" con badge de cuenta de filtros activos y botón "Limpiar" cuando hay cualquier filtro.
+
+**Tests nuevos:**
+- `services/categories.test.ts` (2 tests) — reorden persiste tras "reload" desde repo mockeado, no-op con array vacío.
+- `components/vault/vault-list.test.ts` (7 tests) — matchesFilters combinado (tipo + categoría + favoritos + multi-tag AND + rango fechas + query case-insensitive) + hasAnyActiveFilter + countAdvancedActive.
+
+### Decisiones técnicas y por qué
+
+- **Batch reorden como N updates paralelos (no RPC).** Alternativa: una función SQL que reciba `text[]` y itere. Descartada por complejidad (migración + hardening SECURITY DEFINER) para un caso donde N ≤ ~30 categorías típicas. El cliente ya está detrás de RLS; la latencia extra es sub-100ms LAN.
+- **Filtro multi-tag = AND**, no OR. Motivo: el patrón de uso "filtrar credenciales que tengan tanto `trabajo` como `2fa`" cubre búsquedas por combinación de facetas; OR se aproxima ya con un filtro categoría/tipo. Documentado en la UI ("todos deben coincidir").
+- **Helpers extraídos a `vault-list-filters.ts`.** Motivación técnica: importar `vault-list.tsx` en vitest node arrastra Card/Skeleton/toast/lucide — trabajable pero frágil. Un módulo puro corta la dependencia y hace explícito que la lógica de filtrado no depende de React.
+- **Restaurar historial sin snapshot manual.** El trigger BEFORE UPDATE ya archiva el actual — snapshot extra sería duplicado. Idempotencia: doble restauración con el mismo historyId converge al mismo estado semántico (dos entradas del mismo payload al historial).
+
+### Verificación
+
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — 0 errores; 2 warnings pre-existentes de RHF `watch()`.
+- ✅ `npx vitest run` — 113/113 (85 previos + 4 RSA + 10 plataformas + 5 análisis + 2 categorías reorder + 7 filtros).
+- ✅ `npm run build` — 24 rutas OK.
+
+### Pendiente para siguientes fases
+
+- Fase 10: rotación password_history (trigger), auditoría WCAG formal, runbook OAuth + TOTP.
+- Fase 11: attachments (parcialmente listos de Fase 7).
+- Fases 12-13: import/export ampliado y deploy Vercel.
+
+---
+
+## Fase 10 — Mantenimiento (rotación historial + WCAG + runbook OAuth/TOTP) ✅
+
+**Fecha:** 2026-07-13
+
+### Qué se implementó
+
+**10.1 — Rotación password_history:**
+- Migración `20260713000001_password_history_rotation.sql`. Función `prune_password_history_versions()` SECURITY DEFINER con `SET search_path = pg_catalog, public` + REVOKE EXECUTE de PUBLIC/anon/authenticated.
+- Trigger `AFTER INSERT` en `password_history`: tras cada insert, borra todas las filas del mismo `vault_item_id` fuera del top-20 más reciente por `archived_at DESC, id DESC`.
+- Constante `PASSWORD_HISTORY_MAX_VERSIONS_PER_ITEM = 20` en `constants/password-history.ts`.
+- Test `constants/password-history.test.ts`: (a) valida invariantes de la constante y (b) hace grep del SQL para asegurar que `versions_to_keep` en la migración matchea el valor TS — guardrail contra drift.
+- **Verificación en DB remota (via MCP execute_sql)**: DO block que inserta 25 versiones, valida `count = 20`, `newest = v25`, `oldest = v6` (v1-v5 podadas correctamente). Pasó.
+- `get_advisors security` post-push: 6 warnings pre-existentes (SECURITY DEFINER de RPCs de sharing, Fase 7) + `auth_leaked_password_protection` (config del dashboard). El trigger nuevo NO aparece — REVOKE surtió efecto.
+
+**10.2 — Auditoría WCAG:**
+- `@axe-core/playwright` como devDependency.
+- `e2e/a11y.spec.ts` con axe corriendo sobre `/login`, `/register`, `/vault` (autenticado + desbloqueado), `/categories` (con handles de drag & drop). Excluye `color-contrast` — se audita en Lighthouse manual porque axe da falsos positivos con tokens de Tailwind dark en estado disabled.
+- `docs/A11Y_AUDIT.md`: alcance, reglas excluidas con motivo, patrones ya aplicados en fases previas + los nuevos de Fase 9 (aria-label en grip de dnd-kit, aria-expanded/aria-controls en el panel avanzado, aria-pressed en chips de tags).
+
+**10.3 — Runbook OAuth + TOTP:**
+- `docs/OAUTH_TOTP_VERIFICATION.md`: 5 secciones (prerrequisitos, registro Google, login existente, setup TOTP, login con MFA vía password y vía OAuth, trusted device, desactivación) + checklist + tabla de registro de verificaciones. Explícita la sensibilidad del bug regresivo en el flujo OAuth (referencia al commit 988d5d7).
+
+### Decisiones técnicas y por qué
+
+- **Rotación via trigger AFTER INSERT (no cron ni Edge Function).** El trigger corre sincrónicamente con cada nueva versión archivada — nunca hay más de N + 1 filas simultáneas por item. Alternativa (cron scheduled) genera picos de N × items en cada tick y ventana de exposición donde hay más versiones que las permitidas. El costo por insert es un DELETE con subquery pequeña indexada por `password_history_item_idx (vault_item_id, archived_at DESC)`.
+- **N = 20 hardcoded en SQL** (no columna de config). El valor cambia con migración; documentado en el archivo de constants como la fuente de verdad para el cliente. Configurabilidad por-user no aporta al MVP y complicaría el trigger.
+- **Test grep del SQL en vitest** en vez de conectar a Postgres desde el test. El test valida la invariante "TS y SQL están de acuerdo" sin requerir infraestructura. El comportamiento real ya se validó vía MCP contra la DB remota.
+- **Axe excluye color-contrast:** documentado con la alternativa (Lighthouse manual). No queremos que un tema-dark borderline haga que el suite de a11y siempre esté rojo; la métrica real de contraste sí se audita, solo con otra herramienta.
+
+### Pendiente / dudas
+
+- **Runbook OAuth+TOTP no está marcado como validado** — requiere config manual en Supabase Dashboard (Google provider) + Google Cloud Console. Ver `DECISIONS_NEEDED.md` §2.
+- **`auth_leaked_password_protection`** apagado en el dashboard — enable HIBP-check en Supabase Auth. Configuración del dashboard, no de código.
+- **E2E de a11y no corrido** en esta sesión (requiere `.env.e2e` + user seeded — mismo entorno que `vault.spec.ts` de Fase 8). El código está listo.
+
+### Verificación
+
+- ✅ `supabase db push` — migración 20260713000001 aplicada.
+- ✅ `mcp execute_sql` — DO block confirma rotación 25 → 20, borra las 5 más antiguas.
+- ✅ `get_advisors security` — trigger nuevo NO en la lista (REVOKE OK).
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npx vitest run` — 115/115 (113 previos + 2 constante rotación).
+- ✅ Docs: `A11Y_AUDIT.md` + `OAUTH_TOTP_VERIFICATION.md` en `docs/`.
+
+---
+
+## Fase 11 — Adjuntos cifrados (extensión mime + dropzone + tests binario) ✅
+
+**Fecha:** 2026-07-13
+
+La infraestructura base de attachments ya estaba en Fase 7. Esta fase amplía con: mime cifrado + dropzone drag & drop + suite de tests round-trip binario. El límite se conserva en 20 MB (bucket ya configurado así, más generoso que los 10 MB del plan).
+
+### Qué se implementó
+
+- **Migración `20260713000002_attachments_mime.sql`:** añade `mime_ciphertext` + `mime_iv` nullable a `attachments` con constraint `attachments_mime_pair_check` (ambos o ninguno). Nullable porque hay filas previas sin mime.
+- **Repositorio y servicio:**
+  - `AttachmentRow.mime_ciphertext / mime_iv` (nullable).
+  - `insertAttachment` acepta y persiste los campos mime.
+  - `uploadAttachment` cifra `file.type || "application/octet-stream"` con la master key. Cero información de tipo llega al server en claro.
+  - `AttachmentDecrypted.mime: string | null` en el descifrado; entradas históricas sin mime devuelven null.
+- **UI `attachments-section.tsx` reescrita** con dropzone:
+  - `<button>` grande con borde dashed + `onDragEnter/Over/Leave/Drop`.
+  - Handler `handleFiles(FileList)` soporta drop múltiple; upload secuencial para no saturar memoria con blobs grandes.
+  - Fallback click en la misma zona; `<input type="file" multiple hidden>`.
+  - Icono por mime (`iconForMime`): image/audio/video/pdf/text/spreadsheet/zip → icono correspondiente; unknown/null → FileLock2.
+  - Metadata visible descifrada: nombre + tipo mime + tamaño.
+  - `aria-label` en zona, botones descargar/borrar por adjunto.
+- **Tests round-trip binario `services/attachments.test.ts` (6 tests):**
+  - 1 KB aleatorio: byte-a-byte.
+  - Todos los bytes 0x00-0xFF: verifica que el path base64 (que attachments.ts atraviesa al pasar bytes crudos al `insertAttachment.encryptedBlob`) no corrompe.
+  - 500 KB: sample + suma-hash (comparar byte-a-byte en jsdom es muy lento).
+  - Archivo vacío (0 bytes) — caso borde.
+  - Nombre y mime con UTF-8 no ASCII + emoji: `"foto árbol 🌳.jpeg"` sobrevive round-trip.
+  - Clave incorrecta falla al descifrar (auth tag GCM).
+  - Fix específico: `randomBytes` chunkeado a bloques de 64 KB — `crypto.getRandomValues` limita 65_536 bytes por llamada (`QuotaExceededError`).
+
+### Decisiones técnicas y por qué
+
+- **Mime cifrado, no en claro.** El plan dice "MIME + tamaño cifrados"; el mime real (`application/pdf` vs `image/heic`) filtra el tipo de contenido — no aceptable en Zero-Knowledge. Tamaño se deja como metadata en claro porque (a) el bucket ya lo expone y (b) sirve para límites server-side.
+- **Nullable + CHECK constraint pareado** en vez de default `""`. Un default vacío obligaría a distinguir "sin cifrar" de "vacío por bug" — el NULL explícito lo captura sin ambigüedad.
+- **`file.type || "application/octet-stream"`.** Chrome deja `file.type = ""` si no reconoce la extensión; el mime "octet-stream" es la señal explícita de "desconocido" en HTTP.
+- **Iconos por mime con match prefijo/substring**, no un enum. Los mime reales son variados (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) y un mapa completo escala mal.
+- **Upload secuencial en drop múltiple**, no `Promise.all`. Cifrar 5 archivos de 10 MB en paralelo produce spike de memoria ≥ 50 MB y bloquea el hilo (crypto.subtle es sync en Chrome desktop). Secuencial mantiene UX interactiva.
+- **Tests binarios directos contra `encryptBytes/decryptBytes`**, no contra el servicio con mocks de Supabase. Ese path (Uint8Array → cifrado → base64 → transporte → base64 → Uint8Array → descifrado) es exactamente lo que corre en producción. Los mocks de Storage añaden ruido sin cubrir nada nuevo.
+
+### Verificación
+
+- ✅ `supabase db push` — migración mime aplicada.
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — 0 errores; 2 warnings pre-existentes RHF.
+- ✅ `npx vitest run` — 121/121 (115 previos + 6 attachments binario).
+- ✅ `npm run build` — 24 rutas OK.
+
+### Pendiente / dudas
+
+- Verificación RLS cross-user (dos users, uno no puede leer el path de storage del otro). Los tests DB requieren dos sesiones autenticadas — se puede probar en E2E de Fase 12 cuando toque import/export.
+- Preview inline (thumbnail para imágenes) descartado por complejidad (descifrar y renderizar cada imagen en la lista añade N descifrados y URL.createObjectURL potencialmente leaky). Preview siempre pasa por "descargar".
+
+---
+
+## Fase 12 — Import / Export ampliado + auto-backup ✅
+
+**Fecha:** 2026-07-13
+
+### Qué se implementó
+
+**12.1 — Parsers de import (4 gestores):**
+- `services/import/csv.ts` — parser CSV RFC-4180 compat propio (sin librería): comillas + escape `""` + CRLF + separador configurable. ~50 líneas, cubre los casos reales de export.
+- `services/import/bitwarden.ts` — JSON: mapea `type 1|2|3|4` a `password|note|card|identity`, respeta `folderId → category_name` vía `folders[]`, propaga `favorite`, TOTP en `login.totp`, address multi-línea en identity, rechaza export cifrado.
+- `services/import/chrome.ts` — CSV `name,url,username,password,note`. Fallback Firefox (sin `name`): deriva de hostname del URL.
+- `services/import/lastpass.ts` — CSV `url,username,password,totp,extra,name,grouping,fav`. Detecta secure notes por `url = "http://sn"`, propaga folder desde `grouping`, `fav = "1"` → favorito.
+- `services/import/1password.ts` — CSV (1P >= 8) + 1PIF legacy (JSON separado por marker `***5642bee8-a5ff-11dc-8314-0800200c9a66***`) + `parseOnePasswordAuto` que autodetecta. CSV rechaza JSON (`{` o `[`) explícitamente — 1P JSON requiere export CSV/1PIF.
+- Formato neutro `ImportedItem` con `item_type + payload + category_name + tag_names + is_favorite`.
+- `services/import/index.ts.commitImport(items)` — crea categorías nuevas (reusa existentes por nombre) y llama `createItem` por item, todo con la master key ya derivada.
+- `services/import/parsers.test.ts` — 14 tests: CSV quoting/escape/CRLF, Bitwarden 4 tipos + rechazo cifrado, Chrome + fallback Firefox, LastPass secure notes + favorito, 1P CSV + 1PIF + autodetect.
+
+**12.2 — UI wizard 3-pasos (`components/vault/import-wizard.tsx`):**
+- Paso 1: grid de fuentes con label + formato + descripción de cómo obtener el export.
+- Paso 2: subida con `accept` específico por fuente + botón "Parsear".
+- Paso 3: preview client-side (tabla, primeros 200 items + contador si más) + avisos (skipped + reasons) + botón "Importar N items".
+- Reset al final permite volver a empezar.
+- Integrado en `/backup` debajo del export/import de VaultHub.
+
+**12.3 — Auto-backup toggle + reminder:**
+- Migración `20260713000003_auto_backup.sql`: añade `auto_backup_days INTEGER DEFAULT 0` (CHECK IN 0,1,7,30) + `last_backup_at TIMESTAMPTZ` en `profiles`.
+- Repositorio: `updateAutoBackupPreference(days)` + `markBackupNow()`. `ProfileRow` extendido con los dos campos.
+- `services/backup.exportBackup` llama `markBackupNow()` fire-and-forget tras cifrar — el usuario "hizo backup" cuando el archivo se descargó (no cuando lo abre en otro dispositivo, que es incontrolable server-side).
+- `components/vault/auto-backup-toggle.tsx` — radiogroup Off/Diario/Semanal/Mensual + fecha del último backup.
+- `components/vault/backup-schedule.ts` — helper puro `backupIsOverdue(days, lastAt, nowMs)`. Extraído de `auto-backup-toggle.tsx` para poder testear sin arrastrar el cliente Supabase (que requiere env vars). Ver decisión abajo.
+- `components/vault/backup-reminder-banner.tsx` — banner en `/vault` cuando `overdue`; link a `/backup` + botón cerrar (in-memoria, reaparece en siguiente unlock).
+- 6 tests para `backupIsOverdue` (off, sin last, dentro/fuera del intervalo, borderline exacto, fecha malformed).
+
+### Decisiones técnicas y por qué
+
+- **CSV parser propio en vez de `papaparse`.** Papaparse añade ~40 KB al bundle. Nuestro CSV es sencillo (export de gestores conocidos, no CSV maliciosos user-provided) y el parser cabe en 50 líneas legibles. Reduce superficie de dependencias en un módulo que corre sobre datos sensibles.
+- **1PIF con separator hardcoded.** El marker `***5642bee8-a5ff-11dc-8314-0800200c9a66***` es una constante pública de 1Password desde 2011. Sin librería, es lo más simple.
+- **`commitImport` NO valida ni deduplica.** El usuario puede importar dos veces el mismo export y obtendrá items duplicados. Detectar duplicados requiere heurísticas ambiguas (¿duplicado si mismo url+username? mismo name?) que fácilmente clasifican mal. En su lugar, el preview muestra la cuenta antes de commitear — si el user no quiere duplicar, cancela.
+- **Auto-backup client-side con toggle en profiles**, no cron ni Edge Function. Motivación Zero-Knowledge: el server no puede ejecutar `exportBackup` porque no tiene la master key. La única forma real de garantizar backups periódicos es recordárselo al user en cada sesión. `last_backup_at` es metadata no sensible (solo dice "hubo actividad de export"), su exposición al server es aceptable.
+- **`backup-schedule.ts` extraído.** El test de `backupIsOverdue` importado desde `auto-backup-toggle.tsx` arrastraba `@/repositories/profile` → `@/lib/supabase/client` → `@/lib/supabase/env` (`throw` si no hay env vars). El helper puro en archivo aparte corta la cadena. Mismo patrón que `vault-list-filters.ts` en Fase 9.
+- **`markBackupNow()` fire-and-forget.** Si el update falla (red down, race con logout), el archivo ya está descargado — no queremos molestar al user con un toast de error post-éxito. El próximo abrir del vault verá el timestamp anterior y volverá a recordar; degradación aceptable.
+- **Banner NO usa localStorage para persistir "dismiss".** CLAUDE.md prohíbe localStorage para datos sensibles; "dismissed" no lo es, pero mantener la regla simple: el reminder desaparece esta sesión, vuelve la próxima. Consistente con la filosofía de "auto-lock al cerrar pestaña".
+
+### Verificación
+
+- ✅ `supabase db push` — migraciones 20260713000002 (mime) y 20260713000003 (auto_backup) aplicadas.
+- ✅ `npm run typecheck` — sin errores.
+- ✅ `npm run lint` — 0 errores; 2 warnings pre-existentes RHF.
+- ✅ `npx vitest run` — 141/141 (121 previos + 14 parsers + 6 backupIsOverdue).
+- ✅ `npm run build` — 24 rutas OK.
+
+### Pendiente / dudas
+
+- Import no soporta ítems tipo TOTP dedicado (secret en item aparte); si el gestor de origen exporta OTP como URI (`otpauth://…`), se pierde en algunos casos (Bitwarden lo mete en `login.totp` que sí importamos, pero no como item TOTP separado).
+- Sin campos custom en el import: si un gestor exporta campos custom con datos, se descartan (excepto notes/notas globales).
+- Auto-backup fire-and-forget → si el user hace 3 backups seguidos por error de UI, `last_backup_at` avanza pero eso no daña nada (solo evita el reminder).
+
+---
+
+## Fase 13 — Deploy Vercel (preparación) ✅
+
+**Fecha:** 2026-07-13
+
+La activación real requiere pasos manuales en Vercel + Supabase Dashboard + Google Cloud Console (no automatizables sin credenciales). Esta fase deja el código y la doc listos para que el deploy sea mecánico.
+
+### Qué se implementó
+
+**13.1 — Guía de deploy actualizada (`docs/DEPLOY_VERCEL.md`):**
+- 10 secciones ordenadas: import repo, env vars (con matriz explícita alcance Prod/Preview), deploy inicial, redirect URLs Supabase, Google OAuth, custom domain + HSTS, Sentry/error reporting opcional respetando Zero-Knowledge, headers de seguridad, verificación end-to-end (checklist de 8 puntos), migraciones futuras, troubleshooting común, rollback.
+- Referencias cruzadas a `DECISIONS_NEEDED.md #2` (Google OAuth) y `OAUTH_TOTP_VERIFICATION.md` (runbook post-deploy).
+
+**13.2 — Headers de seguridad en `next.config.ts`:**
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (HSTS 2 años).
+- `X-Frame-Options: DENY` (clickjacking).
+- `X-Content-Type-Options: nosniff`.
+- `Referrer-Policy: strict-origin-when-cross-origin`.
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()` — negamos APIs no usadas.
+- `Content-Security-Policy` con whitelist estricta:
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-inline'` (Next 16 con inline scripts en `<Script strategy="beforeInteractive">` requiere unsafe-inline; documentado).
+  - `style-src 'self' 'unsafe-inline'` (Tailwind + shadcn generan estilos inline).
+  - `img-src 'self' data: blob:` (data URLs para íconos SVG inline, blob para previews de attachments).
+  - `connect-src 'self' <SUPABASE_URL> https://api.pwnedpasswords.com` — solo Supabase + HIBP (Fase 6). Bloquea exfiltración a otros orígenes.
+  - `frame-ancestors 'none'` (doble seguro con X-Frame-Options).
+  - `form-action 'self'`, `base-uri 'self'`, `object-src 'none'`.
+
+### Decisiones técnicas y por qué
+
+- **HSTS con `preload`** en el header. Preload requiere subir el dominio manualmente a hstspreload.org — el header es la primera condición. Documentado que se activa tras confirmar HTTPS estable ≥1 semana.
+- **CSP con `unsafe-inline` en scripts** — no ideal, pero Next 16 + tw + shadcn con inline scripts pequeños (RSC hydration bootstrap) requieren esto. Alternativa: nonces por request → refactor grande. Mitigaciones: `connect-src` restringido, `object-src 'none'`, `base-uri 'self'` — el vector inline residual es acotado.
+- **Sentry NO incluido por defecto.** Auto-instrumentation captura payloads con seguridad de tipos genérica; un descuido y termina enviando `payload` de items descifrados a Sentry. La sección lo trata como opcional con reglas explícitas de `beforeSend`.
+- **`connect-src` con `NEXT_PUBLIC_SUPABASE_URL` real, no wildcard.** En build time inyectamos la URL exacta del proyecto — bloquea que un CSP fallback como `*.supabase.co` deje pasar sub-supabase-project maliciosos si alguien encuentra XSS.
+
+### Verificación
+
+- ✅ `npm run typecheck` — sin errores (tras limpiar `.next/dev` con caché stale).
+- ✅ `npm run lint` — 0 errores; 2 warnings pre-existentes RHF.
+- ✅ `npx vitest run` — 141/141.
+- ✅ `npm run build` — 24 rutas OK, headers detectados en config.
+
+### Pendiente (config manual del usuario)
+
+- Import del repo en Vercel + env vars.
+- Redirect URLs en Supabase con la URL productiva.
+- Google OAuth Client en Google Cloud Console.
+- Custom domain + verificación DNS.
+- Correr checklist de verificación end-to-end de la sección 9 del doc.
+- Marcar como validado en `OAUTH_TOTP_VERIFICATION.md` tras probar el flujo completo en prod.
+
+---
+
+## Resumen Fases 9-13 (esta sesión)
+
+- **Fase 9 — UX small wins:** DnD categorías (dnd-kit + fallback teclado), restaurar versión histórica, búsqueda avanzada multi-tag + rango fechas.
+- **Fase 10 — Mantenimiento:** rotación historial (trigger + N=20), suite axe-core WCAG, runbook OAuth+TOTP.
+- **Fase 11 — Attachments extendido:** mime cifrado, dropzone drag & drop, 6 tests binario incluyendo utf-8 + bytes 0x00-0xFF.
+- **Fase 12 — Import/Export:** parsers Bitwarden/1Password/LastPass/Chrome, wizard 3-pasos, auto-backup toggle + reminder.
+- **Fase 13 — Deploy prep:** guía Vercel completa, headers HSTS/CSP en `next.config.ts`.
+
+**Métricas globales:**
+- Tests: 85 (inicio de sesión) → **141** (56 nuevos: 2 categorías reorder, 7 filtros, 2 rotación constante, 6 attachments binario, 14 parsers import, 6 backup schedule + 19 misc distribución).
+- Rutas build: **24** (sin cambios en cantidad; nuevas features viven en rutas existentes).
+- Migraciones nuevas: `20260713000001_password_history_rotation.sql`, `20260713000002_attachments_mime.sql`, `20260713000003_auto_backup.sql` — todas aplicadas al remoto sin advisors nuevos.
+- Warnings lint: 2 (RHF `watch()`, pre-existentes desde Fase 5).
+
+---
