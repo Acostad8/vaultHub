@@ -42,23 +42,23 @@ export default function LandingPage() {
 
       {/* Barra superior estilo prompt. */}
       <header className="relative z-10 border-b border-emerald-500/15 bg-black/40 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-mono text-emerald-200">
-            <Logo className="size-5" />
-            <span className="text-sm font-semibold tracking-tight">
+            <Logo className="size-8" />
+            <span className="text-2xl font-semibold tracking-tight sm:text-3xl">
               vaulthub<span className="text-emerald-400">_</span>
             </span>
           </Link>
-          <nav className="flex items-center gap-1 font-mono text-xs sm:gap-3 sm:text-sm">
+          <nav className="flex items-center gap-2 font-mono text-sm sm:gap-4 sm:text-base">
             <Link
               href="/login"
-              className="rounded-md px-3 py-1.5 text-emerald-300/80 transition-colors hover:text-emerald-200"
+              className="rounded-md px-3 py-2 text-emerald-300/80 transition-colors hover:text-emerald-200"
             >
               login
             </Link>
             <Link
               href="/register"
-              className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-200 transition-colors hover:border-emerald-400 hover:bg-emerald-500/20"
+              className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-emerald-200 transition-colors hover:border-emerald-400 hover:bg-emerald-500/20"
             >
               crear vault →
             </Link>
@@ -67,51 +67,51 @@ export default function LandingPage() {
       </header>
 
       <main className="relative z-10">
-        {/* HERO */}
-        <section className="mx-auto flex min-h-[92vh] w-full max-w-6xl flex-col items-center justify-center px-4 py-16 text-center">
-          <div className="mb-8 flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/5 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:text-xs">
-            <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-400" />
-            zero-knowledge · AES-256-GCM · PBKDF2 600k
+        {/* HERO — 2 columnas: texto+CTA izquierda, candado ASCII derecha. */}
+        <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl grid-cols-1 items-center gap-10 px-4 py-4 md:grid-cols-2 md:gap-12 md:py-6 lg:gap-16">
+          {/* Columna izquierda: manifiesto + CTAs. */}
+          <div className="flex flex-col items-start text-left">
+            <div className="mb-8 flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/5 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:text-xs">
+              <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-400" />
+              zero-knowledge · AES-256-GCM · PBKDF2 600k
+            </div>
+
+            <h1 className="font-mono text-3xl leading-[1.15] text-emerald-100 sm:text-4xl md:text-5xl lg:text-6xl">
+              Tus credenciales.
+              <br />
+              Tu clave.
+              <br />
+              <span className="bg-gradient-to-r from-emerald-300 via-emerald-200 to-teal-200 bg-clip-text text-transparent drop-shadow-[0_0_16px_rgba(52,211,153,0.35)]">
+                Solo tú puedes descifrarlas.
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-md text-sm text-emerald-200/70 sm:text-base">
+              Cifrado extremo a extremo con arquitectura{" "}
+              <span className="font-mono text-emerald-300">zero-knowledge</span>. El servidor solo
+              almacena ciphertext — ni siquiera nosotros podemos leer lo que guardas.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/register"
+                className="group inline-flex items-center gap-2 rounded-md border border-emerald-400/50 bg-emerald-500/15 px-5 py-2.5 font-mono text-sm text-emerald-100 shadow-[0_0_40px_-10px_rgba(52,211,153,0.6)] transition-all hover:border-emerald-300 hover:bg-emerald-500/25 hover:shadow-[0_0_60px_-10px_rgba(52,211,153,0.9)]"
+              >
+                <span className="text-emerald-400">$</span> ./init-vault
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-md border border-emerald-500/20 px-5 py-2.5 font-mono text-sm text-emerald-300/80 transition-colors hover:border-emerald-400/40 hover:text-emerald-200"
+              >
+                <span className="text-emerald-500/60">$</span> ./unlock
+              </Link>
+            </div>
           </div>
 
-          <div className="mb-10 w-full">
+          {/* Columna derecha: candado ASCII. En móvil aparece encima del texto (order-first). */}
+          <div className="order-first flex w-full items-center justify-center md:order-last">
             <AsciiLock />
-          </div>
-
-          <h1 className="mx-auto max-w-3xl font-mono text-2xl leading-tight text-emerald-100 sm:text-4xl md:text-5xl">
-            Tus credenciales.
-            <br />
-            Tu clave.
-            <br />
-            <span className="bg-gradient-to-r from-emerald-300 via-emerald-200 to-teal-200 bg-clip-text text-transparent drop-shadow-[0_0_16px_rgba(52,211,153,0.35)]">
-              Solo tú puedes descifrarlas.
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-sm text-emerald-200/70 sm:text-base">
-            Cifrado extremo a extremo con arquitectura{" "}
-            <span className="font-mono text-emerald-300">zero-knowledge</span>. El servidor solo
-            almacena ciphertext — ni siquiera nosotros podemos leer lo que guardas.
-          </p>
-
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              href="/register"
-              className="group inline-flex items-center gap-2 rounded-md border border-emerald-400/50 bg-emerald-500/15 px-5 py-2.5 font-mono text-sm text-emerald-100 shadow-[0_0_40px_-10px_rgba(52,211,153,0.6)] transition-all hover:border-emerald-300 hover:bg-emerald-500/25 hover:shadow-[0_0_60px_-10px_rgba(52,211,153,0.9)]"
-            >
-              <span className="text-emerald-400">$</span> ./init-vault
-              <span className="transition-transform group-hover:translate-x-0.5">→</span>
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-md border border-emerald-500/20 px-5 py-2.5 font-mono text-sm text-emerald-300/80 transition-colors hover:border-emerald-400/40 hover:text-emerald-200"
-            >
-              <span className="text-emerald-500/60">$</span> ./unlock
-            </Link>
-          </div>
-
-          <div className="mt-14 animate-bounce font-mono text-xs text-emerald-500/60">
-            ↓ scroll · decrypt more
           </div>
         </section>
 
@@ -242,13 +242,77 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="relative border-t border-emerald-500/10 bg-black/60 py-8 backdrop-blur-sm">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 font-mono text-xs text-emerald-500/50 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <Logo className="size-4" />
-              vaulthub · {new Date().getFullYear()}
+        <footer className="relative border-t border-emerald-500/15 bg-black/60 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-6xl px-4 py-12">
+            {/* Grid superior: marca + columnas de enlaces / stack */}
+            <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Marca + tagline */}
+              <div className="lg:col-span-2">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 font-mono text-emerald-200"
+                >
+                  <Logo className="size-8" />
+                  <span className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                    vaulthub<span className="text-emerald-400">_</span>
+                  </span>
+                </Link>
+                <p className="mt-3 max-w-sm text-sm text-emerald-200/60">
+                  Gestor de contraseñas zero-knowledge. Cifrado en tu navegador con Web Crypto
+                  nativo. Ni nosotros podemos leer tu vault.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-500/5 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-emerald-300">
+                  <span className="inline-block size-1.5 animate-pulse rounded-full bg-emerald-400" />
+                  status: operational
+                </div>
+              </div>
+
+              {/* Navegación */}
+              <div>
+                <p className="mb-3 font-mono text-xs uppercase tracking-widest text-emerald-400/70">
+                  &gt; navigate
+                </p>
+                <ul className="space-y-2 font-mono text-sm text-emerald-200/70">
+                  <li>
+                    <Link href="/login" className="hover:text-emerald-200">
+                      login
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/register" className="hover:text-emerald-200">
+                      crear vault
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="#features" className="hover:text-emerald-200">
+                      features
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Stack cripto */}
+              <div>
+                <p className="mb-3 font-mono text-xs uppercase tracking-widest text-emerald-400/70">
+                  &gt; stack
+                </p>
+                <ul className="space-y-2 font-mono text-sm text-emerald-200/70">
+                  <li>AES-256-GCM</li>
+                  <li>PBKDF2 · 600k</li>
+                  <li>RSA-OAEP 2048</li>
+                  <li>Web Crypto API</li>
+                </ul>
+              </div>
             </div>
-            <div>zero-knowledge by design</div>
+
+            {/* Línea inferior */}
+            <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-emerald-500/10 pt-6 font-mono text-xs text-emerald-500/60 sm:flex-row sm:text-sm">
+              <div>© {new Date().getFullYear()} vaulthub · zero-knowledge by design</div>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-500/40">$</span>
+                <span>./built-with --nextjs --supabase --tailwind</span>
+              </div>
+            </div>
           </div>
         </footer>
       </main>
@@ -272,7 +336,7 @@ function FeatureCard({
       <div className="mb-4 inline-flex size-10 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-emerald-300">
         {icon}
       </div>
-      <h3 className="mb-2 font-mono text-base text-emerald-100">{title}</h3>
+      <h3 className="mb-2 font-mono text-xl text-emerald-100 sm:text-2xl">{title}</h3>
       <p className="text-sm text-emerald-200/60">{body}</p>
       <p className="mt-4 border-t border-emerald-500/10 pt-3 font-mono text-[10px] uppercase tracking-widest text-emerald-400/50">
         {mono}
