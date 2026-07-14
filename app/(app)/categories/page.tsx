@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Folder, Plus } from "lucide-react";
+import { AlertCircle, Folder, GripVertical, Plus } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -24,14 +24,20 @@ import { toast } from "sonner";
 
 import { errorMessage } from "@/lib/errors";
 import { useConfirm } from "@/components/providers/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { VaultGate } from "@/components/vault/vault-gate";
-import { PageHeader } from "@/components/vault/page-header";
 import { SortableCategoryItem } from "@/components/vault/sortable-category-item";
+import {
+  EmptyState,
+  ErrorBanner,
+  LoadingHint,
+  ModuleCard,
+  ModuleHero,
+  ModuleSectionHeader,
+  ModuleShell,
+} from "@/components/vault/module-shell";
 import {
   createCategory,
   listDecryptedCategories,
@@ -41,15 +47,28 @@ import {
   type DecryptedCategory,
 } from "@/services/categories";
 import { categorySchema, type CategoryInput } from "@/validators/vault";
+import { useVaultCache } from "@/store/vault-cache";
 
 function CategoriesInner() {
   const confirm = useConfirm();
+  const cachedItems = useVaultCache((s) => s.items);
   const [items, setItems] = useState<DecryptedCategory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Count de items por categoria (client-side sobre cache). Se muestra en la
+  // card sortable para dar contexto sin un extra roundtrip.
+  const itemsByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!cachedItems) return map;
+    for (const it of cachedItems) {
+      if (!it.category_id) continue;
+      map.set(it.category_id, (map.get(it.category_id) ?? 0) + 1);
+    }
+    return map;
+  }, [cachedItems]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [color, setColor] = useState("");
-  // Copia local del orden previo — para rollback si el batch update falla.
   const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
 
   const sensors = useSensors(
@@ -154,17 +173,26 @@ function CategoriesInner() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <PageHeader
-        title="Categorias"
-        description="Organiza tus items en carpetas. Arrastra o usa ↑↓ para reordenar. El nombre se cifra localmente."
-      />
-
-      <Card className="mb-4 p-5">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-            <div className="space-y-1">
-              <Label htmlFor="name" className="text-xs">
+    <ModuleShell
+      footerNote="nombres cifrados con tu master key"
+      hero={
+        <ModuleHero
+          eyebrow="vault.categories"
+          title="Categorias"
+          description="Organiza tus items en carpetas. Arrastra o usa ↑↓ para reordenar."
+          badge={{ icon: Folder, label: `${items?.length ?? 0} activas` }}
+        />
+      }
+    >
+      <ModuleCard>
+        <ModuleSectionHeader
+          title="crear categoria"
+          hint="Nombre + color opcional. Se cifra localmente."
+        />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-5" noValidate>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Nombre
               </Label>
               <InputWithIcon
@@ -174,64 +202,95 @@ function CategoriesInner() {
                 {...register("name")}
               />
               {errors.name ? (
-                <p className="text-xs text-red-600">{errors.name.message}</p>
+                <p className="flex items-center gap-1 text-xs text-red-600">
+                  <AlertCircle className="size-3" />
+                  {errors.name.message}
+                </p>
               ) : null}
             </div>
-            <div className="flex items-end">
-              <Button type="submit" className="w-full gap-1.5 sm:w-auto" disabled={isSubmitting}>
-                <Plus className="size-4" />
-                Crear
-              </Button>
-            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-5 text-sm font-medium text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/40 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+            >
+              <Plus className="size-4" />
+              Crear
+            </button>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Color</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Color</Label>
             <ColorSwatchPicker value={color} onChange={setColor} disabled={isSubmitting} />
           </div>
         </form>
-      </Card>
+      </ModuleCard>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {!items ? <p className="text-sm text-zinc-500">Cargando…</p> : null}
-      {items && items.length === 0 ? (
-        <Card className="border-dashed p-10 text-center text-sm text-zinc-500">
-          Sin categorias todavia.
-        </Card>
-      ) : null}
+      <ModuleCard>
+        <ModuleSectionHeader
+          title="lista"
+          hint="Reordenar por drag & drop o teclado (↑↓ tras enfocar el handle)."
+          right={
+            items && items.length > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                <GripVertical className="size-3" />
+                {items.length}
+              </span>
+            ) : null
+          }
+        />
+        <div className="p-4">
+          {error ? <ErrorBanner message={error} /> : null}
+          {!items ? <LoadingHint text="cargando categorias" /> : null}
+          {items && items.length === 0 ? (
+            <EmptyState
+              icon={<Folder className="size-6" />}
+              title="Sin categorias todavia"
+              hint="Crea la primera arriba."
+            />
+          ) : null}
 
-      {items && items.length > 0 ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-            <ul
-              className="space-y-2"
-              aria-label="Lista de categorias reordenables"
-              aria-busy={pendingOrder !== null || undefined}
+          {items && items.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              {items.map((cat, index) => (
-                <SortableCategoryItem
-                  key={cat.id}
-                  category={cat}
-                  editing={editingId === cat.id}
-                  editName={editName}
-                  onEditNameChange={setEditName}
-                  onStartEdit={() => {
-                    setEditingId(cat.id);
-                    setEditName(cat.name);
-                  }}
-                  onCancelEdit={() => {
-                    setEditingId(null);
-                    setEditName("");
-                  }}
-                  onSaveEdit={() => handleRename(cat.id)}
-                  onDelete={() => handleDelete(cat.id)}
-                  onKeyboardMove={(delta) => moveByIndex(index, index + delta)}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
-      ) : null}
-    </div>
+              <SortableContext
+                items={items.map((c) => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul
+                  className="space-y-2"
+                  aria-label="Lista de categorias reordenables"
+                  aria-busy={pendingOrder !== null || undefined}
+                >
+                  {items.map((cat, index) => (
+                    <SortableCategoryItem
+                      key={cat.id}
+                      category={cat}
+                      itemCount={itemsByCategory.get(cat.id) ?? 0}
+                      editing={editingId === cat.id}
+                      editName={editName}
+                      onEditNameChange={setEditName}
+                      onStartEdit={() => {
+                        setEditingId(cat.id);
+                        setEditName(cat.name);
+                      }}
+                      onCancelEdit={() => {
+                        setEditingId(null);
+                        setEditName("");
+                      }}
+                      onSaveEdit={() => handleRename(cat.id)}
+                      onDelete={() => handleDelete(cat.id)}
+                      onKeyboardMove={(delta) => moveByIndex(index, index + delta)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          ) : null}
+        </div>
+      </ModuleCard>
+    </ModuleShell>
   );
 }
 

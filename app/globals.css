@@ -166,3 +166,61 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* Scrollbar coherente con estetica terminal emerald.
+   Fuera de @layer para no perder contra preflight de Tailwind v4.
+   Firefox: scrollbar-width/color en html+body. WebKit: pseudo-elementos globales. */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(52, 211, 153, 0.5) rgba(0, 0, 0, 0.4);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+  border-left: 1px solid rgba(52, 211, 153, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(52, 211, 153, 0.45) 0%,
+    rgba(16, 185, 129, 0.65) 100%
+  );
+  border: 2px solid rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  box-shadow: inset 0 0 4px rgba(52, 211, 153, 0.3);
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 231, 183, 0.7) 0%,
+    rgba(52, 211, 153, 0.95) 100%
+  );
+  box-shadow:
+    inset 0 0 4px rgba(52, 211, 153, 0.5),
+    0 0 10px rgba(52, 211, 153, 0.45);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(52, 211, 153, 0.95);
+}
+
+::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Utility: scroll invisible (carruseles, listas horizontales). */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

@@ -57,7 +57,16 @@ export async function signInWithGoogle(): Promise<void> {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${getSiteOrigin()}/auth/callback?next=/`,
+      // Tras el callback aterrizamos en /vault (no en la landing). El vault
+      // gate manda a /unlock si hace falta.
+      redirectTo: `${getSiteOrigin()}/auth/callback?next=/vault`,
+      // prompt=select_account: Google SIEMPRE muestra el picker de cuenta,
+      // aunque exista sesion Google activa. Sin este flag Google salta el
+      // picker cuando hay una sola cuenta o el grant ya se concedio antes —
+      // confuso para el usuario y bloqueante si quiere entrar con otra.
+      queryParams: {
+        prompt: "select_account",
+      },
     },
   });
   if (error) throw error;

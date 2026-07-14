@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmDialogProvider } from "@/components/providers/confirm-dialog";
+import { KonamiEasterEgg } from "@/components/easter-egg/konami";
 
 // Manrope: neo-grotesque geometrica moderna, ligeramente redondeada.
 // Legibilidad alta y personalidad neutra apta para producto profesional.
@@ -53,6 +54,7 @@ export default function RootLayout({
         >
           <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
           <Toaster position="bottom-center" />
+          <KonamiEasterEgg />
         </ThemeProvider>
       </body>
     </html>

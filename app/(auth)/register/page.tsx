@@ -5,15 +5,18 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldAlert } from "lucide-react";
 
 import { errorMessage } from "@/lib/errors";
-import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Label } from "@/components/ui/label";
 import { GoogleButton } from "@/components/auth/google-button";
 import { signUpWithPassword } from "@/services/auth";
 import { registerSchema, type RegisterInput } from "@/validators/auth";
+
+// Estilo terminal reutilizado en inputs (misma paleta que /login).
+const TERMINAL_INPUT_CLASS =
+  "h-10 border-emerald-500/25 bg-black/40 font-mono text-emerald-100 placeholder:text-emerald-400/40 focus-visible:border-emerald-400 focus-visible:ring-emerald-400/30";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -45,103 +48,152 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Crear cuenta</h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Esta es tu password de <strong>cuenta</strong>. La master password que protege tu vault
-          se define despues y no se puede recuperar.
+    <div className="space-y-7">
+      <header className="space-y-3 text-left">
+        <p className="font-mono text-xs uppercase tracking-widest text-emerald-400/70">
+          &gt; auth.register
+        </p>
+        <h1 className="font-mono text-3xl text-emerald-100 sm:text-4xl">Crea tu vault.</h1>
+        <p className="font-mono text-sm text-emerald-200/70">
+          Esta es tu password de <span className="text-emerald-300">cuenta</span>. La master
+          password que protege tu vault se define despues — y no se puede recuperar.
         </p>
       </header>
 
       <div className="space-y-6">
-        <GoogleButton disabled={isSubmitting} />
+        {/* GoogleButton: override de clases via wrapper para pisar el look shadcn. */}
+        <div className="[&_button]:h-11 [&_button]:w-full [&_button]:rounded-md [&_button]:border [&_button]:border-emerald-500/30 [&_button]:bg-black/40 [&_button]:font-mono [&_button]:text-sm [&_button]:text-emerald-100 [&_button]:transition-colors hover:[&_button]:border-emerald-400/60 hover:[&_button]:bg-emerald-500/10">
+          <GoogleButton disabled={isSubmitting} />
+        </div>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+            <div className="w-full border-t border-emerald-500/15" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-zinc-50 px-3 text-xs uppercase tracking-wider text-zinc-500 dark:bg-zinc-950">
+            <span className="bg-black/70 px-3 font-mono text-xs uppercase tracking-widest text-emerald-400/70">
               o con email
             </span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+          <div className="space-y-2">
+            <Label
+              htmlFor="email"
+              className="font-mono text-xs uppercase tracking-widest text-emerald-300"
+            >
+              &gt; email
+            </Label>
             <InputWithIcon
               id="email"
               type="email"
               autoComplete="email"
               placeholder="tu@correo.com"
-              leftIcon={<Mail className="size-4" />}
+              leftIcon={<Mail className="size-4 text-emerald-400/70" />}
+              className={TERMINAL_INPUT_CLASS}
               {...register("email")}
             />
             {errors.email ? (
-              <p className="text-xs text-red-600">{errors.email.message}</p>
+              <p className="font-mono text-xs text-red-400">! {errors.email.message}</p>
             ) : null}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password (min 10 chars)</Label>
+          <div className="space-y-2">
+            <Label
+              htmlFor="password"
+              className="font-mono text-xs uppercase tracking-widest text-emerald-300"
+            >
+              &gt; password{" "}
+              <span className="text-emerald-400/50 normal-case tracking-normal">
+                (min 10 chars)
+              </span>
+            </Label>
             <InputWithIcon
               id="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              leftIcon={<Lock className="size-4" />}
+              placeholder="********"
+              leftIcon={<Lock className="size-4 text-emerald-400/70" />}
               rightSlot={
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  className="rounded p-1 text-emerald-400/70 transition-colors hover:text-emerald-200"
                   aria-label={showPassword ? "Ocultar password" : "Mostrar password"}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               }
+              className={TERMINAL_INPUT_CLASS}
               {...register("password")}
             />
             {errors.password ? (
-              <p className="text-xs text-red-600">{errors.password.message}</p>
+              <p className="font-mono text-xs text-red-400">! {errors.password.message}</p>
             ) : null}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="confirmPassword">Confirmar password</Label>
+          <div className="space-y-2">
+            <Label
+              htmlFor="confirmPassword"
+              className="font-mono text-xs uppercase tracking-widest text-emerald-300"
+            >
+              &gt; confirm password
+            </Label>
             <InputWithIcon
               id="confirmPassword"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              leftIcon={<Lock className="size-4" />}
+              placeholder="********"
+              leftIcon={<Lock className="size-4 text-emerald-400/70" />}
+              className={TERMINAL_INPUT_CLASS}
               {...register("confirmPassword")}
             />
             {errors.confirmPassword ? (
-              <p className="text-xs text-red-600">{errors.confirmPassword.message}</p>
+              <p className="font-mono text-xs text-red-400">
+                ! {errors.confirmPassword.message}
+              </p>
             ) : null}
           </div>
 
+          {/* Aviso zero-knowledge: subraya que perder la master pass = vault perdido. */}
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/25 bg-amber-950/20 p-3 font-mono text-xs text-amber-200/80">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-400" />
+            <span>
+              Al crear el vault definiras una <span className="text-amber-200">master password</span>{" "}
+              distinta. Si la olvidas, el vault sera irrecuperable — es el precio del
+              zero-knowledge.
+            </span>
+          </div>
+
           {serverError ? (
-            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+            <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-950/30 p-3 font-mono text-sm text-red-300">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <span>{serverError}</span>
             </div>
           ) : null}
 
-          <Button type="submit" size="lg" className="w-full gap-2" disabled={isSubmitting}>
-            {isSubmitting ? "Creando…" : "Crear cuenta"}
-            {!isSubmitting ? <ArrowRight className="size-4" /> : null}
-          </Button>
+          {/* Boton principal estilo terminal, consistente con landing (./init-vault). */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-emerald-400/50 bg-emerald-500/15 px-5 font-mono text-sm text-emerald-100 shadow-[0_0_40px_-10px_rgba(52,211,153,0.55)] transition-all hover:border-emerald-300 hover:bg-emerald-500/25 hover:shadow-[0_0_60px_-10px_rgba(52,211,153,0.85)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="text-emerald-400">$</span>
+            {isSubmitting ? "initializing…" : "./init-vault"}
+            {!isSubmitting ? (
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            ) : null}
+          </button>
         </form>
 
-        <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-center font-mono text-sm text-emerald-200/70">
           Ya tienes cuenta?{" "}
           <Link
             href="/login"
-            className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100"
+            className="text-emerald-300 underline-offset-4 transition-colors hover:text-emerald-200 hover:underline"
           >
-            Inicia sesion
+            entra a tu vault →
           </Link>
         </p>
       </div>

@@ -14,7 +14,7 @@ Usuario creó proyecto `vaulthub` (`jawefdwrfjsnclnbwxby`, us-east-1), corrió `
 
 Usuario configuró OAuth Client en Google Cloud Console y habilitó el provider en el dashboard de Supabase. Flujo "Continuar con Google" operativo.
 
-**Nota pendiente derivada:** el flujo OAuth no pasa por el check MFA del login form — si una cuenta con TOTP entra via Google, no se le pide el código. Mover el check a `/auth/callback` o a un layout client (anotado en PROGRESS_LOG Fase 7).
+**Nota pendiente derivada:** ✅ RESUELTO 2026-07-14 — el check AAL fue movido a `/auth/callback` (`app/auth/callback/route.ts:65-75`). Cualquier login (password u OAuth) que quede en AAL1 con TOTP habilitado es redirigido a `/mfa`. Ante error consultando AAL, la ruta hace fallback conservador a `/mfa`.
 
 ---
 

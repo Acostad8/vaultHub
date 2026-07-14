@@ -15,8 +15,10 @@ const PUBLIC_ROUTES = new Set([
   "/check-email",
 ]);
 
-// Rutas donde una sesion activa nos redirige al vault (evita ver landing/login estando logueado).
-const AUTH_ONLY_ROUTES = new Set(["/", "/login", "/register", "/forgot-password"]);
+// Rutas donde una sesion activa nos redirige al vault (evita entrar a login/register
+// estando logueado). "/" queda fuera: la landing debe ser accesible tambien con
+// sesion (permite volver desde /unlock sin quedar en loop con /vault redirect).
+const AUTH_ONLY_ROUTES = new Set(["/login", "/register", "/forgot-password"]);
 
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true;

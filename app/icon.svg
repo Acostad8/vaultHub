@@ -1,13 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f59e0b"/>
-      <stop offset="1" stop-color="#ea580c"/>
-    </linearGradient>
-  </defs>
-  <path d="M32 4 L55 17 V47 L32 60 L9 47 V17 Z" fill="url(#g)"/>
-  <circle cx="32" cy="25" r="8" fill="none" stroke="#fff" stroke-width="4.5"/>
-  <line x1="32" y1="33" x2="32" y2="50" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
-  <line x1="32" y1="43" x2="39" y2="43" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
-  <line x1="32" y1="50" x2="38" y2="50" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+  <g fill="none" stroke="#34d399" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 8 L7 8 L7 56 L13 56"/>
+    <path d="M51 8 L57 8 L57 56 L51 56"/>
+  </g>
+  <g fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 44 Q14 14 32 14 Q45 14 49 26"/>
+    <path d="M50 34 Q50 43 48 49"/>
+    <path d="M18 47 Q18 18 32 18 Q45 18 45 44"/>
+    <path d="M22 30 Q25 22 32 22 Q41 22 41 40"/>
+    <path d="M41 44 L41 48"/>
+    <path d="M26 46 Q26 26 32 26 Q37 26 37 44"/>
+    <path d="M30 40 Q28 32 33 32 Q36 34 33 38"/>
+  </g>
+  <g fill="#34d399">
+    <circle cx="20" cy="36" r="0.9"/>
+    <circle cx="44" cy="34" r="0.9"/>
+  </g>
 </svg>

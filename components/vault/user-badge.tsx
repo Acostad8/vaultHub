@@ -2,7 +2,7 @@
 
 import { useProfileCache } from "@/store/profile";
 
-// Badge con el email + inicial del usuario. Usa el ProfileCache — evita un
+// Badge con inicial + email del usuario. Usa el ProfileCache — evita un
 // getUser() server-side extra en cada navegacion a home.
 export function UserBadge() {
   const profile = useProfileCache((s) => s.profile);
@@ -10,11 +10,11 @@ export function UserBadge() {
   const initial = (email || "?").charAt(0).toUpperCase();
 
   return (
-    <div className="hidden items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs sm:flex dark:border-zinc-800 dark:bg-zinc-900">
-      <span className="flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+    <div className="hidden items-center gap-2.5 rounded-full border border-zinc-200 bg-white py-1 pl-1 pr-3.5 text-xs shadow-sm sm:flex dark:border-zinc-800 dark:bg-zinc-900">
+      <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[11px] font-semibold text-white shadow-inner">
         {initial}
       </span>
-      <span className="text-zinc-600 dark:text-zinc-300">{email}</span>
+      <span className="font-medium text-zinc-700 dark:text-zinc-200">{email}</span>
     </div>
   );
 }
