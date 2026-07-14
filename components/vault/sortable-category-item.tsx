@@ -189,7 +189,7 @@ export function SortableCategoryItem({
               <button
                 type="button"
                 onClick={onStartEdit}
-                className="rounded-md p-2 text-zinc-400 opacity-0 transition-all hover:bg-zinc-100 hover:text-zinc-900 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                className="rounded-md p-2 text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-900 focus:opacity-100 sm:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                 title="Renombrar"
                 aria-label={`Renombrar ${category.name}`}
               >
@@ -198,7 +198,7 @@ export function SortableCategoryItem({
               <button
                 type="button"
                 onClick={onDelete}
-                className="rounded-md p-2 text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                className="rounded-md p-2 text-zinc-500 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 sm:text-zinc-400 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                 title="Borrar"
                 aria-label={`Borrar ${category.name}`}
               >

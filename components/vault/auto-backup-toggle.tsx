@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 import { errorMessage } from "@/lib/errors";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   fetchMyProfile,
@@ -15,12 +14,26 @@ import {
 
 export { backupIsOverdue } from "./backup-schedule";
 
-const OPTIONS: Array<{ value: AutoBackupDays; label: string }> = [
-  { value: 0, label: "Off" },
-  { value: 1, label: "Diario" },
-  { value: 7, label: "Semanal" },
-  { value: 30, label: "Mensual" },
+const OPTIONS: Array<{ value: AutoBackupDays; label: string; hint: string }> = [
+  { value: 0, label: "off", hint: "sin recordatorio" },
+  { value: 1, label: "diario", hint: "cada 24h" },
+  { value: 7, label: "semanal", hint: "cada 7d" },
+  { value: 30, label: "mensual", hint: "cada 30d" },
 ];
+
+// Formatea "hace X" en corto (5m, 2h, 3d). Preciso hasta granularidad util
+// para la UI — no necesitamos "hace 5.3 dias".
+function relativeShort(iso: string): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diffMin = Math.max(0, Math.floor((now - then) / 60000));
+  if (diffMin < 1) return "ahora";
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  return `${diffD}d`;
+}
 
 export function AutoBackupToggle() {
   const [value, setValue] = useState<AutoBackupDays | null>(null);
@@ -59,54 +72,57 @@ export function AutoBackupToggle() {
   }
 
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex size-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          <CalendarClock className="size-4" />
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+        <CalendarClock className="size-5" />
+      </div>
+      <div className="flex-1 space-y-3">
+        <div>
+          <Label className="font-mono text-[11px] uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
+            &gt; frecuencia
+          </Label>
+          <div
+            className="mt-2 flex flex-wrap gap-1.5"
+            role="radiogroup"
+            aria-label="Frecuencia de backup"
+          >
+            {OPTIONS.map((o) => {
+              const selected = value === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`${o.label} — ${o.hint}`}
+                  disabled={busy || value === null}
+                  onClick={() => handleChange(o.value)}
+                  className={`rounded-full border px-3 py-1 font-mono text-xs transition-all ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 shadow-sm shadow-emerald-500/20 dark:text-emerald-300"
+                      : "border-zinc-300 bg-white text-zinc-600 hover:border-emerald-400 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-emerald-500/50 dark:hover:text-emerald-300"
+                  } disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="flex-1 space-y-2">
-          <div>
-            <p className="text-sm font-medium">Recordatorio de backup</p>
-            <p className="text-xs text-zinc-500">
-              Zero-Knowledge no permite backup automático real (el server no tiene tu master key).
-              Cuando el intervalo se cumpla, VaultHub te lo recuerda al abrir el vault.
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs">Frecuencia</Label>
-            <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Frecuencia de backup">
-              {OPTIONS.map((o) => {
-                const selected = value === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    disabled={busy || value === null}
-                    onClick={() => handleChange(o.value)}
-                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                      selected
-                        ? "border-indigo-500 bg-indigo-500 text-white"
-                        : "border-zinc-300 bg-transparent text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300"
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+          <Clock className="size-3" />
           {lastBackupAt ? (
-            <p className="text-[11px] text-zinc-500">
-              Ultimo backup: {new Date(lastBackupAt).toLocaleString()}
-            </p>
+            <span>
+              ultimo backup <span className="text-emerald-600 dark:text-emerald-400">
+                hace {relativeShort(lastBackupAt)}
+              </span>{" "}
+              · {new Date(lastBackupAt).toLocaleDateString()}
+            </span>
           ) : (
-            <p className="text-[11px] text-zinc-500">Sin backups todavia.</p>
+            <span>sin backups todavia — exporta el primero abajo</span>
           )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
-

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VT323 } from "next/font/google";
 import {
   Activity,
   Archive,
@@ -14,6 +15,14 @@ import {
 import type { ComponentType, SVGProps } from "react";
 
 import { Logo } from "@/components/ui/logo";
+
+// VT323: misma fuente CRT terminal que la landing, solo para el brand del header.
+const vt323 = VT323({
+  variable: "--font-terminal",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
 import { LogoutButton } from "@/components/auth/logout-button";
 import { VaultGate } from "@/components/vault/vault-gate";
 import { VaultList } from "@/components/vault/vault-list";
@@ -43,6 +52,14 @@ const ACCOUNT_ACTIONS: ToolbarAction[] = [
 
 export default function VaultHome() {
   return (
+    <VaultGate>
+      <VaultHomeInner />
+    </VaultGate>
+  );
+}
+
+function VaultHomeInner() {
+  return (
     <div className="relative min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Blob decorativo emerald (muy sutil) para dar profundidad sin ruido */}
       <div
@@ -55,12 +72,12 @@ export default function VaultHome() {
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
           <Link
             href="/vault"
-            className="flex items-center gap-2 text-emerald-600 transition-colors hover:text-emerald-500 dark:text-emerald-400"
+            className={`${vt323.variable} flex items-center gap-2 text-emerald-600 transition-colors hover:text-emerald-500 dark:text-emerald-400`}
+            style={{ ["--font-geist-mono" as string]: "var(--font-terminal)" }}
           >
-            <Logo className="size-7" />
-            <span className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              vaulthub
-              <span className="text-emerald-500">_</span>
+            <Logo className="size-8" />
+            <span className="font-mono text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-100">
+              vaulthub<span className="text-emerald-500 dark:text-emerald-400">_</span>
             </span>
           </Link>
           <div className="flex items-center gap-3">
@@ -115,12 +132,10 @@ export default function VaultHome() {
           </div>
         </section>
 
-        <VaultGate>
-          <div className="mb-4">
-            <BackupReminderBanner />
-          </div>
-          <VaultList />
-        </VaultGate>
+        <div className="mb-4">
+          <BackupReminderBanner />
+        </div>
+        <VaultList />
       </main>
     </div>
   );

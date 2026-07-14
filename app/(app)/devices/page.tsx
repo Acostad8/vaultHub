@@ -8,6 +8,9 @@ import {
   LogOut,
   MonitorSmartphone,
   Pencil,
+  Search,
+  Shield,
+  ShieldAlert,
   ShieldCheck,
   ShieldOff,
   Smartphone,
@@ -20,6 +23,7 @@ import { toast } from "sonner";
 import { errorMessage } from "@/lib/errors";
 import { useConfirm } from "@/components/providers/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { VaultGate } from "@/components/vault/vault-gate";
 import {
   EmptyState,
@@ -102,6 +106,8 @@ function DevicesInner() {
   const [othersClosed, setOthersClosed] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [query, setQuery] = useState("");
+  const [bulkRevokeBusy, setBulkRevokeBusy] = useState(false);
 
   function reload() {
     return listMyDevices().then(
@@ -169,14 +175,70 @@ function DevicesInner() {
     }
   }
 
+  async function handleRevokeUntrusted() {
+    if (!devices) return;
+    const targets = devices.filter((d) => !d.is_current && !d.is_trusted);
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: `Revocar ${targets.length} dispositivo(s) no confiable(s)?`,
+      description:
+        "Se revocan todos los dispositivos que no marcaste como confiables (excepto este). Cerraran sesion en su proximo uso.",
+      confirmLabel: "Revocar todos",
+      destructive: true,
+    });
+    if (!ok) return;
+    setBulkRevokeBusy(true);
+    const results = await Promise.allSettled(targets.map((t) => revokeDevice(t.id)));
+    const okCount = results.filter((r) => r.status === "fulfilled").length;
+    const failCount = results.length - okCount;
+    if (failCount > 0) {
+      toast.error(`Revocados ${okCount}/${results.length} — ${failCount} fallaron`);
+    } else {
+      toast.success(`${okCount} dispositivos revocados`);
+    }
+    setBulkRevokeBusy(false);
+    void reload();
+  }
+
   const trustedCount = devices?.filter((d) => d.is_trusted).length ?? 0;
+  const untrustedRevokableCount =
+    devices?.filter((d) => !d.is_current && !d.is_trusted).length ?? 0;
 
   // Split para render en dos secciones (destaca el dispositivo actual).
+  // El search filtra solo las OTRAS sesiones — el dispositivo actual
+  // siempre se muestra para no perder el contexto de donde estas.
   const { currentDevice, otherDevices } = useMemo(() => {
     if (!devices) return { currentDevice: null, otherDevices: [] as DeviceItem[] };
+    const others = devices.filter((d) => !d.is_current);
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? others.filter(
+          (d) =>
+            d.device_name.toLowerCase().includes(q) ||
+            summarizeUA(d.user_agent).toLowerCase().includes(q),
+        )
+      : others;
     return {
       currentDevice: devices.find((d) => d.is_current) ?? null,
-      otherDevices: devices.filter((d) => !d.is_current),
+      otherDevices: filtered,
+    };
+  }, [devices, query]);
+
+  const stats = useMemo(() => {
+    const empty = { total: 0, trusted: 0, untrusted: 0, recentlyActive: 0 };
+    if (!devices) return empty;
+    const now = Date.now();
+    const day = 86_400_000;
+    let recent = 0;
+    for (const d of devices) {
+      const age = now - new Date(d.last_seen_at).getTime();
+      if (age <= day) recent += 1;
+    }
+    return {
+      total: devices.length,
+      trusted: devices.filter((d) => d.is_trusted).length,
+      untrusted: devices.filter((d) => !d.is_trusted).length,
+      recentlyActive: recent,
     };
   }, [devices]);
 
@@ -195,25 +257,32 @@ function DevicesInner() {
         />
       }
     >
-      {/* Acciones globales */}
+      {/* Stats grid */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon={<MonitorSmartphone className="size-4" />} label="total" value={stats.total} tone="zinc" />
+        <StatCard icon={<ShieldCheck className="size-4" />} label="confiables" value={stats.trusted} tone="emerald" />
+        <StatCard icon={<ShieldAlert className="size-4" />} label="no confiables" value={stats.untrusted} tone={stats.untrusted > 0 ? "amber" : "zinc"} />
+        <StatCard icon={<Shield className="size-4" />} label="activos 24h" value={stats.recentlyActive} tone="teal" />
+      </div>
+
+      {/* Acciones globales — 2 opciones en grid */}
       <ModuleCard>
         <ModuleSectionHeader
           title="acciones globales"
           hint="Aplican a todas tus sesiones excepto la actual."
         />
-        <div className="p-5">
-          <div className="flex flex-col gap-3 rounded-lg border border-amber-500/25 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid gap-3 p-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-500/25 bg-amber-500/5 p-4">
             <div className="flex items-start gap-3">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300">
                 <LogOut className="size-4" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   Cerrar otras sesiones
                 </h3>
                 <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-                  Revoca los tokens de Supabase Auth de todas las demas sesiones activas. Esta
-                  sesion no se toca.
+                  Revoca los tokens Supabase Auth de todas las demas sesiones activas.
                 </p>
               </div>
             </div>
@@ -221,18 +290,45 @@ function DevicesInner() {
               type="button"
               onClick={handleSignOutOthers}
               disabled={busy}
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-amber-500/40 bg-white px-4 text-xs font-medium text-amber-700 shadow-sm transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-amber-200"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-amber-500/40 bg-white px-4 text-xs font-medium text-amber-700 shadow-sm transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-amber-200"
             >
               <LogOut className="size-3.5" />
-              {busy ? "Cerrando…" : "Cerrar otras"}
+              {busy ? "cerrando…" : "cerrar otras"}
+            </button>
+            {othersClosed ? (
+              <p className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                <Check className="size-3" />
+                sesiones remotas revocadas
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-red-500/25 bg-red-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-500/20 text-red-700 dark:text-red-300">
+                <ShieldOff className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Revocar no confiables
+                </h3>
+                <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                  {untrustedRevokableCount > 0
+                    ? `Revoca ${untrustedRevokableCount} dispositivo(s) sin marca de confianza.`
+                    : "Todos tus dispositivos ajenos ya estan revocados o son confiables."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRevokeUntrusted}
+              disabled={bulkRevokeBusy || untrustedRevokableCount === 0}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-red-500/40 bg-white px-4 text-xs font-medium text-red-700 shadow-sm transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:text-red-200"
+            >
+              <ShieldOff className="size-3.5" />
+              {bulkRevokeBusy ? "revocando…" : `revocar ${untrustedRevokableCount || ""}`.trim()}
             </button>
           </div>
-          {othersClosed ? (
-            <p className="mt-3 flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-              <Check className="size-3.5" />
-              sesiones remotas revocadas
-            </p>
-          ) : null}
         </div>
       </ModuleCard>
 
@@ -293,7 +389,7 @@ function DevicesInner() {
       ) : null}
 
       {/* Otras sesiones */}
-      {devices && otherDevices.length > 0 ? (
+      {devices && devices.filter((d) => !d.is_current).length > 0 ? (
         <ModuleCard>
           <ModuleSectionHeader
             title="otras sesiones"
@@ -301,37 +397,106 @@ function DevicesInner() {
             right={
               <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                 {otherDevices.length}
+                {query ? ` / ${devices.filter((d) => !d.is_current).length}` : ""}
               </span>
             }
           />
-          <div className="p-4">
-            <ul className="space-y-2">
-              {otherDevices.map((d) => (
-                <li key={d.id}>
-                  <DeviceCard
-                    device={d}
-                    editing={editingId === d.id}
-                    editName={editName}
-                    setEditName={setEditName}
-                    onRename={() => handleRename(d.id)}
-                    onCancel={() => {
-                      setEditingId(null);
-                      setEditName("");
-                    }}
-                    onStartEdit={() => {
-                      setEditingId(d.id);
-                      setEditName(d.device_name);
-                    }}
-                    onTrust={() => handleTrust(d)}
-                    onRevoke={() => handleRevoke(d)}
-                  />
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-3 p-4">
+            <InputWithIcon
+              placeholder="buscar por nombre o navegador…"
+              leftIcon={<Search className="size-4" />}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-9"
+            />
+            {otherDevices.length === 0 ? (
+              <EmptyState
+                icon={<Search className="size-6" />}
+                title="Sin resultados"
+                hint="Ajusta la busqueda o limpia el filtro."
+              />
+            ) : (
+              <ul className="space-y-2">
+                {otherDevices.map((d) => (
+                  <li key={d.id}>
+                    <DeviceCard
+                      device={d}
+                      editing={editingId === d.id}
+                      editName={editName}
+                      setEditName={setEditName}
+                      onRename={() => handleRename(d.id)}
+                      onCancel={() => {
+                        setEditingId(null);
+                        setEditName("");
+                      }}
+                      onStartEdit={() => {
+                        setEditingId(d.id);
+                        setEditName(d.device_name);
+                      }}
+                      onTrust={() => handleTrust(d)}
+                      onRevoke={() => handleRevoke(d)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </ModuleCard>
       ) : null}
     </ModuleShell>
+  );
+}
+
+type StatTone = "emerald" | "teal" | "amber" | "zinc";
+const STAT_TONES: Record<StatTone, { bg: string; text: string; ring: string }> = {
+  emerald: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-700 dark:text-emerald-400",
+    ring: "ring-emerald-500/30",
+  },
+  teal: {
+    bg: "bg-teal-500/10",
+    text: "text-teal-700 dark:text-teal-400",
+    ring: "ring-teal-500/30",
+  },
+  amber: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-700 dark:text-amber-400",
+    ring: "ring-amber-500/30",
+  },
+  zinc: {
+    bg: "bg-zinc-500/10",
+    text: "text-zinc-700 dark:text-zinc-400",
+    ring: "ring-zinc-500/30",
+  },
+};
+
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone: StatTone;
+}) {
+  const c = STAT_TONES[tone];
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-center gap-2">
+        <span
+          className={`flex size-8 items-center justify-center rounded-lg ${c.bg} ${c.text} ring-1 ${c.ring}`}
+        >
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{value}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
